@@ -1,6 +1,13 @@
 # database-query-server
 Sample MCP Server - Go (database-query-server)
 
+# How to run project
+
+1. Install [Posgtres](https://hub.docker.com/_/postgres)
+2. Start postgres `podman run --name mcp-server-demo-db -e POSTGRES_PASSWORD=$POSTGRES_PASS_MCP_DEMO -d postgres` 
+3. Start PgAdmin `podman run --name pgadmin-mcp-demo -p 5050:80 -e "PGADMIN_DEFAULT_EMAIL=$POSTGRES_EMAIL" -e "PGADMIN_DEFAULT_PASSWORD=$POSTGRES_PASS_MCP_DEMO" -d dpage/pgadmin4`
+4. Start MCP server with `make run`
+
 ### Execute a simple SELECT query
 ```json
 {
@@ -40,7 +47,7 @@ echo '{
 
 ### Example Usage
 
-```json
+```curl
 # Basic JSON-RPC request
 curl -X POST http://localhost:8080/mcp \
   -H "Content-Type: application/json" \
