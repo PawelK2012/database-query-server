@@ -11,9 +11,9 @@ import (
 )
 
 var (
-	DB_USER     = os.Getenv("POSTGRES_MCP_DEMO_USER")
-	DB_PASSWORD = os.Getenv("POSTGRES_PASS_MCP_DEMO")
-	DB_NAME     = os.Getenv("POSTGRES_MCP_DB_NAME")
+	DB_USER     = os.Getenv("POSTGRES_USER")
+	DB_PASSWORD = os.Getenv("POSTGRES_PW")
+	DB_NAME     = os.Getenv("POSTGRES_DB")
 )
 
 type Postgress struct {
