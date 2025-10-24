@@ -3,6 +3,7 @@ package handlers
 import (
 	"context"
 	"fmt"
+	"log"
 
 	"exmple.com/database-query-server/pkg/types"
 	"github.com/mark3labs/mcp-go/mcp"
@@ -23,23 +24,26 @@ type QueryResponse struct {
 	Format   string `json:"format,omitempty"` // json, csv, table
 }
 
-func (qh *QueryHandler) SearchUsersInDB(ctx context.Context, req mcp.CallToolRequest, args QueryRequest) (*types.QueryResponse, error) {
+func (qh *QueryHandler) ExecuteQuery(ctx context.Context, req mcp.CallToolRequest, args QueryRequest) (*types.QueryResponse, error) {
 	// Input is already validated and bound to SearchRequest struct
-	fmt.Printf("queru SearchUsersInDB")
 	limit := args.Limit
 	if limit <= 0 {
 		limit = 10
 	}
 
 	// Placeholder implementation
-	fmt.Printf("handler got query %v with format %v", args.Query, args.Format)
-	r := "handler response"
-	qh.repository.Postgress.Init(ctx)
-	// qh.repo.Init(ctx)
+	fmt.Printf("execute_query handler got query %v with format %v", args.Query, args.Format)
+
+	r, err := qh.repository.Postgress.ExecQuery(ctx, args.Query, args.Parameters)
+	if err != nil {
+		log.Printf("execute_query %v failed %v", args.Query, err)
+		return nil, err
+	}
+	log.Printf("execute_query response %+v", r)
 
 	response := &types.QueryResponse{
 		Query:    "some sql",
-		Response: r,
+		Response: "fix me please", // fix this rubish
 	}
 	return response, nil
 }
