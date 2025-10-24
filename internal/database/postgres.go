@@ -17,7 +17,7 @@ var (
 )
 
 type Postgress struct {
-	pg *sql.DB
+	Pg *sql.DB
 }
 
 func NewPostgressClient() (ClientInterface, error) {
@@ -32,7 +32,7 @@ func NewPostgressClient() (ClientInterface, error) {
 	}
 
 	return &Postgress{
-		pg: pg,
+		Pg: pg,
 	}, err
 }
 
@@ -43,7 +43,7 @@ func (s *Postgress) ExecQuery(ctx context.Context, query string, params map[stri
 	log.Println("----")
 	log.Printf("ExecQuery params %v", params)
 	log.Println("----")
-	stmt, err := s.pg.PrepareContext(ctx, query)
+	stmt, err := s.Pg.PrepareContext(ctx, query)
 	if err != nil {
 		// improve
 		log.Println("---- PrepareContext err")
@@ -117,7 +117,7 @@ func (s *Postgress) Init(ctx context.Context) error {
 		created_at TIMESTAMP
 	)`
 
-	_, err := s.pg.ExecContext(ctx, query)
+	_, err := s.Pg.ExecContext(ctx, query)
 	if err != nil {
 		return err
 	}
@@ -128,6 +128,6 @@ func (s *Postgress) Init(ctx context.Context) error {
 			('Greasy Burger', 'Per Olsen', 'Gateveien 15', 'Sandnes', '4306', 'Norway'),
 			('Tasty Tee', 'Finn Egan', 'Streetroad 19B', 'Liverpool', 'L1 0AA', 'UK');`
 
-	_, err = s.pg.ExecContext(ctx, queryInsert)
+	_, err = s.Pg.ExecContext(ctx, queryInsert)
 	return err
 }
