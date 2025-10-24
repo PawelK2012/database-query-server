@@ -23,7 +23,7 @@ type Postgress struct {
 func NewPostgressClient() (ClientInterface, error) {
 	// remove host=postgresql when running localy
 	connStr := fmt.Sprintf("user=%s dbname=%s password=%s sslmode=disable", DB_USER, DB_NAME, DB_PASSWORD)
-	log.Println("connStr:", connStr)
+	//log.Println("connStr:", connStr)
 
 	pg, err := sql.Open("postgres", connStr)
 	if err != nil {
@@ -36,16 +36,98 @@ func NewPostgressClient() (ClientInterface, error) {
 	}, err
 }
 
+func (s *Postgress) ExecQuery(ctx context.Context, query string, params map[string]any) ([]map[string]interface{}, error) {
+	// remove
+	log.Println("----")
+	log.Printf("ExecQuery %v", query)
+	log.Println("----")
+	log.Printf("ExecQuery params %v", params)
+	log.Println("----")
+	stmt, err := s.pg.PrepareContext(ctx, query)
+	if err != nil {
+		// improve
+		log.Println("---- PrepareContext err")
+		log.Fatal(err)
+	}
+	defer stmt.Close()
+
+	rows, err := stmt.QueryContext(ctx, params["1"])
+	if err != nil {
+		log.Fatal(err)
+	}
+	columns, err := rows.Columns()
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer rows.Close()
+
+	var allMaps []map[string]interface{}
+	// The system handles dynamic queries, so the results are scanned into a slice of pointers to interface{} variables.
+	for rows.Next() {
+		values := make([]interface{}, len(columns))
+		pointers := make([]interface{}, len(columns))
+		for i := range values {
+			pointers[i] = &values[i]
+		}
+		if err := rows.Scan(pointers...); err != nil {
+			// Check for a scan error.
+			// Query rows will be closed with defer.
+			log.Fatal(err)
+		}
+		resultMap := make(map[string]interface{})
+		for i, val := range values {
+			fmt.Printf("Adding key=%s val=%v\n", columns[i], val)
+			resultMap[columns[i]] = val
+		}
+		allMaps = append(allMaps, resultMap)
+	}
+
+	// If the database is being written to ensure to check for Close
+	// errors that may be returned from the driver. The query may
+	// encounter an auto-commit error and be forced to rollback changes.
+	rerr := rows.Close()
+	if rerr != nil {
+		log.Fatal(rerr)
+	}
+
+	// Rows.Err will report the last error encountered by Rows.Scan.
+	if err := rows.Err(); err != nil {
+		log.Fatal(err)
+	}
+
+	// remove
+	log.Println("-----db q res")
+	log.Printf("names %v ", allMaps)
+	log.Println("-----db q res")
+	return allMaps, nil
+}
+
+// The logic in Init() could be improved, but it's not a priority right now.
+// I might revisit and refine this function later.
 func (s *Postgress) Init(ctx context.Context) error {
-	fmt.Printf("Calling Postgres init func")
-	query := `CREATE TABLE IF NOT EXISTS notes (
+	fmt.Printf("initialising Customer table with test values")
+	query := `CREATE TABLE IF NOT EXISTS Customers (
 		id SERIAL PRIMARY KEY,
-		author VARCHAR(200),
-		title VARCHAR(250),
-		description VARCHAR(5000),
-		tags VARCHAR(250),
+		CustomerName VARCHAR(200),
+		ContactName VARCHAR(250),
+		Address VARCHAR(500),
+		City VARCHAR(250),
+		PostalCode VARCHAR(150),
+		Country VARCHAR(250),
 		created_at TIMESTAMP
 	)`
+
 	_, err := s.pg.ExecContext(ctx, query)
+	if err != nil {
+		return err
+	}
+
+	queryInsert := `INSERT INTO Customers (CustomerName, ContactName, Address, City, PostalCode, Country)
+			VALUES
+			('Cardinal', 'Tom B. Erichsen', 'Skagen 21', 'Stavanger', '4006', 'Norway'),
+			('Greasy Burger', 'Per Olsen', 'Gateveien 15', 'Sandnes', '4306', 'Norway'),
+			('Tasty Tee', 'Finn Egan', 'Streetroad 19B', 'Liverpool', 'L1 0AA', 'UK');`
+
+	_, err = s.pg.ExecContext(ctx, queryInsert)
 	return err
 }

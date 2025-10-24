@@ -51,7 +51,7 @@ func main() {
 			mcp.WithInputSchema[QueryRequest](),
 			mcp.WithOutputSchema[QueryResponse](),
 		),
-		mcp.NewStructuredToolHandler(qh.SearchUsersInDB),
+		mcp.NewStructuredToolHandler(qh.ExecuteQuery),
 	)
 
 	// Start StreamableHTTP server
