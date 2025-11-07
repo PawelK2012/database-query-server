@@ -2,14 +2,15 @@ package database_test
 
 import (
 	"context"
-	"log"
 	"regexp"
 	"testing"
 
 	"exmple.com/database-query-server/internal/database"
 	"github.com/DATA-DOG/go-sqlmock"
+	"github.com/stretchr/testify/assert"
 )
 
+// TODO All these test cases should be refactored into one single GO table tests
 func TestExecQuery_Happy_Path(t *testing.T) {
 
 	db, mock, err := sqlmock.New()
@@ -22,26 +23,30 @@ func TestExecQuery_Happy_Path(t *testing.T) {
 	pg := &database.Postgress{Pg: db}
 
 	ctx := context.Background()
-	query := "SELECT id, name FROM users WHERE id = $1"
+	query := "SELECT CustomerName, Address FROM customers WHERE Country =$1;"
 
-	// expected rows to return
-	rows := sqlmock.NewRows([]string{"id", "name"}).
-		AddRow(1, "Alice").
-		AddRow(2, "Bob")
+	rows := sqlmock.NewRows([]string{"CustomerName", "Address"}).
+		AddRow("Alice", "Some address 12")
 
 	// query params
-	par := make(map[string]any)
-	par["1"] = "Alice"
-	par["2"] = "Bob"
+	params := make(map[string]any)
+	params["1"] = "UK"
 
-	mock.ExpectPrepare(regexp.QuoteMeta("SELECT id, name FROM users WHERE id = $1")).ExpectQuery().WithArgs(par["1"]).WillReturnRows(rows)
+	expected := make(map[string]any)
+	expected["CustomerName"] = "Alice"
+	expected["Address"] = "Some address 12"
 
-	result, err := pg.ExecQuery(ctx, query, par)
+	mock.ExpectPrepare(regexp.QuoteMeta(query)).ExpectQuery().WithArgs("UK").WillReturnRows(rows)
+
+	result, err := pg.ExecQuery(ctx, query, params)
 	if err != nil {
 		t.Errorf("ExecQuery() failed: %v", err)
 		return
 	}
-	log.Printf("resultsssss %v", result)
+	assert.Equal(t, 1, len(result), "test should return 1 row")
+	for i := range result {
+		assert.Equal(t, expected, result[i], "returned data should match expectation")
+	}
 
 	// we make sure that all expectations were met
 	if err := mock.ExpectationsWereMet(); err != nil {
@@ -50,7 +55,7 @@ func TestExecQuery_Happy_Path(t *testing.T) {
 
 }
 
-func TestExecQuery_Success_Selecting_2_Row(t *testing.T) {
+func TestExecQuery_Happy_Path_With_2_Args(t *testing.T) {
 
 	db, mock, err := sqlmock.New()
 	if err != nil {
@@ -62,26 +67,35 @@ func TestExecQuery_Success_Selecting_2_Row(t *testing.T) {
 	pg := &database.Postgress{Pg: db}
 
 	ctx := context.Background()
-	query := "SELECT id, name FROM users WHERE id = $2"
+	query := "SELECT CustomerName, Address FROM customers WHERE Country =$1 AND City LIKE $2"
 
 	// expected rows to return
-	rows := sqlmock.NewRows([]string{"id", "name"}).
-		AddRow(1, "Alice").
-		AddRow(2, "Bob")
+	rows := sqlmock.NewRows([]string{"CustomerName", "Address"}).
+		AddRow("Alice", "Alice Address").
+		AddRow("Bob", "Some address 12")
 
 	// query params
 	par := make(map[string]any)
-	par["1"] = "Alice"
-	par["2"] = "Bob"
+	par["1"] = "UK"
+	par["2"] = "L%"
 
-	mock.ExpectPrepare(regexp.QuoteMeta("SELECT id, name FROM users WHERE id = $2")).ExpectQuery().WithArgs(par["2"]).WillReturnRows(rows)
+	expected := []map[string]any{
+		{"CustomerName": "Alice", "Address": "Alice Address"},
+		{"CustomerName": "Bob", "Address": "Some address 12"},
+	}
+
+	mock.ExpectPrepare(regexp.QuoteMeta(query)).ExpectQuery().WithArgs("UK", "L%").WillReturnRows(rows)
 
 	result, err := pg.ExecQuery(ctx, query, par)
 	if err != nil {
 		t.Errorf("ExecQuery() failed: %v", err)
 		return
 	}
-	log.Printf("resultsssss %v", result)
+
+	assert.Equal(t, 2, len(result), "test should return 2 rows")
+	for i := range result {
+		assert.Equal(t, expected[i], result[i], "returned data should match expectation")
+	}
 
 	// we make sure that all expectations were met
 	if err := mock.ExpectationsWereMet(); err != nil {
@@ -103,26 +117,33 @@ func TestExecQuery_Select_All(t *testing.T) {
 	pg := &database.Postgress{Pg: db}
 
 	ctx := context.Background()
-	query := "select * from users;"
+	query := "select * from customers;"
 
 	// expected rows to return
-	rows := sqlmock.NewRows([]string{"id", "name"}).
-		AddRow(1, "Alice").
-		AddRow(2, "Bob")
+	rows := sqlmock.NewRows([]string{"CustomerName", "ContactName", "Address", "City", "PostalCode", "Country"}).
+		AddRow("Alice", "Alice contact name", "Alice Address", "Liverpool", "xd12", "UK").
+		AddRow("Bob", "Bob contact name", "Bob Address", "Leeds", "bbb23", "UK")
+
+	expected := []map[string]any{
+		{"CustomerName": "Alice", "ContactName": "Alice contact name", "Address": "Alice Address", "City": "Liverpool", "PostalCode": "xd12", "Country": "UK"},
+		{"CustomerName": "Bob", "ContactName": "Bob contact name", "Address": "Bob Address", "City": "Leeds", "PostalCode": "bbb23", "Country": "UK"},
+	}
 
 	// query params
-	par := make(map[string]any)
-	par["1"] = "Alice"
-	par["2"] = "Bob"
+	params := make(map[string]any)
 
-	mock.ExpectPrepare(regexp.QuoteMeta("select * from users;")).ExpectQuery().WithArgs().WillReturnRows(rows)
+	mock.ExpectPrepare(regexp.QuoteMeta(query)).ExpectQuery().WithArgs().WillReturnRows(rows)
 
-	result, err := pg.ExecQuery(ctx, query, par)
+	result, err := pg.ExecQuery(ctx, query, params)
 	if err != nil {
 		t.Errorf("ExecQuery() failed: %v", err)
 		return
 	}
-	log.Printf("resultsssss %v", result)
+
+	assert.Equal(t, 2, len(result), "test should return 2 rows")
+	for i := range result {
+		assert.Equal(t, expected[i], result[i], "returned data should match expectation")
+	}
 
 	// we make sure that all expectations were met
 	if err := mock.ExpectationsWereMet(); err != nil {

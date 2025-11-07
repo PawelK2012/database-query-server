@@ -43,24 +43,36 @@ func (s *Postgress) ExecQuery(ctx context.Context, query string, params map[stri
 	log.Println("----")
 	log.Printf("ExecQuery params %v", params)
 	log.Println("----")
+
+	var rows *sql.Rows
 	stmt, err := s.Pg.PrepareContext(ctx, query)
 	if err != nil {
 		// improve
-		log.Println("---- PrepareContext err")
 		log.Fatal(err)
 	}
 	defer stmt.Close()
 
-	rows, err := stmt.QueryContext(ctx, params["1"])
-	if err != nil {
-		log.Fatal(err)
+	if len(params) > 0 {
+		var args []any
+		for k := range params {
+			fmt.Printf("key[%s] value[%s]\n", k, params[k])
+			args = append(args, params[k])
+		}
+		rows, err = stmt.QueryContext(ctx, args...)
+		if err != nil {
+			log.Fatal(err)
+		}
+	} else {
+		rows, err = stmt.QueryContext(ctx)
+		if err != nil {
+			log.Fatal(err)
+		}
 	}
 	columns, err := rows.Columns()
 	if err != nil {
 		log.Fatal(err)
 	}
 	defer rows.Close()
-
 	var allMaps []map[string]interface{}
 	// The system handles dynamic queries, so the results are scanned into a slice of pointers to interface{} variables.
 	for rows.Next() {
