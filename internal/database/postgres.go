@@ -47,30 +47,31 @@ func (s *Postgress) ExecQuery(ctx context.Context, query string, params map[stri
 	var rows *sql.Rows
 	stmt, err := s.Pg.PrepareContext(ctx, query)
 	if err != nil {
-		// improve
-		log.Fatal(err)
+		return nil, err
 	}
 	defer stmt.Close()
 
 	if len(params) > 0 {
 		var args []any
+
 		for k := range params {
 			fmt.Printf("key[%s] value[%s]\n", k, params[k])
 			args = append(args, params[k])
 		}
 		rows, err = stmt.QueryContext(ctx, args...)
 		if err != nil {
-			log.Fatal(err)
+			return nil, err
 		}
 	} else {
 		rows, err = stmt.QueryContext(ctx)
 		if err != nil {
-			log.Fatal(err)
+			return nil, err
 		}
 	}
+
 	columns, err := rows.Columns()
 	if err != nil {
-		log.Fatal(err)
+		return nil, err
 	}
 	defer rows.Close()
 	var allMaps []map[string]interface{}
@@ -84,7 +85,7 @@ func (s *Postgress) ExecQuery(ctx context.Context, query string, params map[stri
 		if err := rows.Scan(pointers...); err != nil {
 			// Check for a scan error.
 			// Query rows will be closed with defer.
-			log.Fatal(err)
+			return nil, err
 		}
 		resultMap := make(map[string]interface{})
 		for i, val := range values {
@@ -99,12 +100,12 @@ func (s *Postgress) ExecQuery(ctx context.Context, query string, params map[stri
 	// encounter an auto-commit error and be forced to rollback changes.
 	rerr := rows.Close()
 	if rerr != nil {
-		log.Fatal(rerr)
+		return nil, err
 	}
 
 	// Rows.Err will report the last error encountered by Rows.Scan.
 	if err := rows.Err(); err != nil {
-		log.Fatal(err)
+		return nil, err
 	}
 
 	// remove
@@ -112,34 +113,4 @@ func (s *Postgress) ExecQuery(ctx context.Context, query string, params map[stri
 	log.Printf("names %v ", allMaps)
 	log.Println("-----db q res")
 	return allMaps, nil
-}
-
-// The logic in Init() could be improved, but it's not a priority right now.
-// I might revisit and refine this function later.
-func (s *Postgress) Init(ctx context.Context) error {
-	fmt.Printf("initialising Customer table with test values")
-	query := `CREATE TABLE IF NOT EXISTS Customers (
-		id SERIAL PRIMARY KEY,
-		CustomerName VARCHAR(200),
-		ContactName VARCHAR(250),
-		Address VARCHAR(500),
-		City VARCHAR(250),
-		PostalCode VARCHAR(150),
-		Country VARCHAR(250),
-		created_at TIMESTAMP
-	)`
-
-	_, err := s.Pg.ExecContext(ctx, query)
-	if err != nil {
-		return err
-	}
-
-	queryInsert := `INSERT INTO Customers (CustomerName, ContactName, Address, City, PostalCode, Country)
-			VALUES
-			('Cardinal', 'Tom B. Erichsen', 'Skagen 21', 'Stavanger', '4006', 'Norway'),
-			('Greasy Burger', 'Per Olsen', 'Gateveien 15', 'Sandnes', '4306', 'Norway'),
-			('Tasty Tee', 'Finn Egan', 'Streetroad 19B', 'Liverpool', 'L1 0AA', 'UK');`
-
-	_, err = s.Pg.ExecContext(ctx, queryInsert)
-	return err
 }

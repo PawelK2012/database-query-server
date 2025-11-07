@@ -1,11 +1,11 @@
 # database-query-server
-Sample MCP Server - Go (database-query-server)
+Sample MCP Server - Go (database-query-server) - built according to these [specifications](https://github.com/IBM/mcp-context-forge/issues/897) 
+
 
 # How to run project
 
-1. Simple start with `docker compose up`
-
-Related [documentation](https://github.com/docker/awesome-compose/tree/master/postgresql-pgadmin)
+1. Simple start with `docker compose up` - Related [documentation](https://github.com/docker/awesome-compose/tree/master/postgresql-pgadmin) 
+2. Start MPC server with command `make run`
 
 ## Configuration
 
@@ -140,3 +140,63 @@ curl -X POST http://localhost:8080/mcp \
      }'
 ```
 
+# Populate the Database with Test Data
+
+## Postgress
+
+You can easily populate your PostgreSQL database with test data by calling this MCP server using the following SQL queries:
+
+1. Create `Customers` table
+
+```
+CREATE TABLE IF NOT EXISTS Customers (
+		id SERIAL PRIMARY KEY,
+		CustomerName VARCHAR(200),
+		ContactName VARCHAR(250),
+		Address VARCHAR(500),
+		City VARCHAR(250),
+		PostalCode VARCHAR(150),
+		Country VARCHAR(250),
+		created_at TIMESTAMP
+	)
+```
+2. Update table with data
+
+```
+INSERT INTO Customers (CustomerName, ContactName, Address, City, PostalCode, Country)
+			VALUES
+			('Cardinal', 'Tom B. Erichsen', 'Skagen 21', 'Stavanger', '4006', 'Norway'),
+			('Greasy Burger', 'Per Olsen', 'Gateveien 15', 'Sandnes', '4306', 'Norway'),
+			('Tasty Tee', 'Finn Egan', 'Streetroad 19B', 'Liverpool', 'L1 0AA', 'UK');
+```
+3. Query DB
+
+```
+SELECT * FROM customers
+```
+
+or  (don't forget to provide required Parameters)
+
+```
+SELECT CustomerName, Address FROM customers WHERE Country =$1 AND City LIKE $2
+```
+
+Example
+
+```json
+{
+  "jsonrpc": "2.0",
+  "id": 1,
+  "method": "tools/call",
+  "params": {
+    "name": "execute_query",
+    "arguments": {
+      "database": "primary",
+      "query": "SELECT CustomerName, Address FROM customers WHERE Country =$1 AND City LIKE $2",
+      "parameters": {"1": "UK", "2": "L%"},
+      "format": "json",
+      "limit": 100
+    }
+  }
+}
+```

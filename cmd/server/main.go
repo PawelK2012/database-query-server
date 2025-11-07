@@ -7,24 +7,10 @@ import (
 
 	"exmple.com/database-query-server/internal/handlers"
 	"exmple.com/database-query-server/internal/repository"
+	"exmple.com/database-query-server/pkg/types"
 	"github.com/mark3labs/mcp-go/mcp"
 	"github.com/mark3labs/mcp-go/server"
 )
-
-type QueryRequest struct {
-	Database   string         `json:"database"`
-	Query      string         `json:"query"`
-	Parameters map[string]any `json:"parameters,omitempty"`
-	Format     string         `json:"format,omitempty"` // json, csv, table
-	Limit      int            `json:"limit,omitempty"`
-	Timeout    int            `json:"timeout,omitempty"`
-}
-
-type QueryResponse struct {
-	Query    string `json:"query"`
-	Response string `json:"response"`
-	Format   string `json:"format,omitempty"` // json, csv, table
-}
 
 func main() {
 	// Instantiate repository to open the Redis connection and create the Cloudant client
@@ -48,8 +34,8 @@ func main() {
 			mcp.WithDescription("Demonstrate secure database operations via MCP"),
 			mcp.WithTitleAnnotation("Execute DB Query"),
 			mcp.WithString("query", mcp.Description("DB query")),
-			mcp.WithInputSchema[QueryRequest](),
-			mcp.WithOutputSchema[QueryResponse](),
+			mcp.WithInputSchema[types.QueryRequest](),
+			mcp.WithOutputSchema[types.QueryResponse](),
 		),
 		mcp.NewStructuredToolHandler(qh.ExecuteQuery),
 	)
