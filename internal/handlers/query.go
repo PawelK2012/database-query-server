@@ -28,6 +28,7 @@ func (qh *QueryHandler) ExecuteQuery(ctx context.Context, req mcp.CallToolReques
 	case "json":
 		formattedResp, err = prepareJsonResp(r)
 		if err != nil {
+			fmt.Println("encoding to JSON")
 			//formattedResp = fmt.Sprintf("encoding execute_query failed %v", err)
 			return nil, fmt.Errorf("encoding execute_query failed %v", err)
 		}
