@@ -1,5 +1,6 @@
 # database-query-server
-Sample MCP Server - Go (database-query-server)
+Sample MCP Server - Go (database-query-server) - built according to these [specifications](https://github.com/IBM/mcp-context-forge/issues/897) 
+
 
 # How to run project
 

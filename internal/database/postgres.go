@@ -47,8 +47,7 @@ func (s *Postgress) ExecQuery(ctx context.Context, query string, params map[stri
 	var rows *sql.Rows
 	stmt, err := s.Pg.PrepareContext(ctx, query)
 	if err != nil {
-		// improve
-		log.Fatal(err)
+		return nil, err
 	}
 	defer stmt.Close()
 
@@ -61,18 +60,18 @@ func (s *Postgress) ExecQuery(ctx context.Context, query string, params map[stri
 		}
 		rows, err = stmt.QueryContext(ctx, args...)
 		if err != nil {
-			log.Fatal(err)
+			return nil, err
 		}
 	} else {
 		rows, err = stmt.QueryContext(ctx)
 		if err != nil {
-			log.Fatal(err)
+			return nil, err
 		}
 	}
 
 	columns, err := rows.Columns()
 	if err != nil {
-		log.Fatal(err)
+		return nil, err
 	}
 	defer rows.Close()
 	var allMaps []map[string]interface{}
@@ -86,7 +85,7 @@ func (s *Postgress) ExecQuery(ctx context.Context, query string, params map[stri
 		if err := rows.Scan(pointers...); err != nil {
 			// Check for a scan error.
 			// Query rows will be closed with defer.
-			log.Fatal(err)
+			return nil, err
 		}
 		resultMap := make(map[string]interface{})
 		for i, val := range values {
@@ -101,12 +100,12 @@ func (s *Postgress) ExecQuery(ctx context.Context, query string, params map[stri
 	// encounter an auto-commit error and be forced to rollback changes.
 	rerr := rows.Close()
 	if rerr != nil {
-		log.Fatal(rerr)
+		return nil, err
 	}
 
 	// Rows.Err will report the last error encountered by Rows.Scan.
 	if err := rows.Err(); err != nil {
-		log.Fatal(err)
+		return nil, err
 	}
 
 	// remove
