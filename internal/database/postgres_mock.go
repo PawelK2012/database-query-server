@@ -2,7 +2,6 @@ package database
 
 import (
 	"context"
-	"fmt"
 )
 
 type PostgresClientMock struct {
@@ -18,9 +17,9 @@ func NewPostgresClientMock(mockSQLTable []map[string]interface{}, simulateFailur
 }
 
 func (c *PostgresClientMock) ExecQuery(ctx context.Context, query string, params map[string]any) ([]map[string]interface{}, error) {
+	//TODO handle multiple rows
+	db := c.mockSQLTable[0]
 	var result []map[string]interface{}
-	if c.simulateFailure {
-		return nil, fmt.Errorf("error executing postgres query")
-	}
+	result = append(result, db)
 	return result, nil
 }

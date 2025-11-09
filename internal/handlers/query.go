@@ -17,18 +17,16 @@ func (qh *QueryHandler) ExecuteQuery(ctx context.Context, req mcp.CallToolReques
 	}
 
 	fmt.Printf("execute_query handler got query %v with format %v", args.Query, args.Format)
-
 	r, err := qh.repository.Postgress.ExecQuery(ctx, args.Query, args.Parameters)
 	if err != nil {
 		return nil, fmt.Errorf("execute_query %v failed %v", args.Query, err)
 	}
-
 	var formattedResp string
 	switch args.Format {
 	case "json":
-		formattedResp, err = prepareJsonResp(r)
+		fmt.Println("encoding to JSON")
+		formattedResp, err = qh.PrepareJsonResp(r)
 		if err != nil {
-			fmt.Println("encoding to JSON")
 			//formattedResp = fmt.Sprintf("encoding execute_query failed %v", err)
 			return nil, fmt.Errorf("encoding execute_query failed %v", err)
 		}
@@ -37,7 +35,6 @@ func (qh *QueryHandler) ExecuteQuery(ctx context.Context, req mcp.CallToolReques
 	case "table":
 		fmt.Println("encoding to table")
 	}
-
 	response := &types.QueryResponse{
 		Query:    args.Query,
 		Response: formattedResp,
@@ -45,7 +42,7 @@ func (qh *QueryHandler) ExecuteQuery(ctx context.Context, req mcp.CallToolReques
 	return response, nil
 }
 
-func prepareJsonResp(d []map[string]interface{}) (string, error) {
+func (qh *QueryHandler) PrepareJsonResp(d []map[string]interface{}) (string, error) {
 	enco, err := json.Marshal(d)
 	if err != nil {
 		return "", err
