@@ -9,15 +9,32 @@ import (
 	"exmple.com/database-query-server/internal/repository"
 	"exmple.com/database-query-server/pkg/types"
 	"github.com/mark3labs/mcp-go/mcp"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestQueryHandler_ExecuteQuery(t *testing.T) {
 
-	//mocked SQL table
+	//mocked table rows
 	var mtbl []map[string]interface{}
 	item := make(map[string]interface{})
-	item["row1"] = "sss"
-	mtbl = append(mtbl, item)
+	item["id"] = "1"
+	item["CustomerName"] = "Bob"
+	item["ContactName"] = "Bob mum"
+	item["Address"] = "Some street in London"
+	item["City"] = "London"
+	item["PostalCode"] = "1ld12"
+	item["Country"] = "UK"
+
+	item1 := make(map[string]interface{})
+	item1["id"] = "2"
+	item1["CustomerName"] = "John"
+	item1["ContactName"] = "John mum"
+	item1["Address"] = "Some street in Dublin"
+	item1["City"] = "Dublin"
+	item1["PostalCode"] = "1dbld12"
+	item1["Country"] = "Ireland"
+
+	mtbl = append(mtbl, item, item1)
 
 	pg, _ := database.NewPostgresClientMock(mtbl, false)
 
@@ -46,18 +63,16 @@ func TestQueryHandler_ExecuteQuery(t *testing.T) {
 
 	expected := types.QueryResponse{
 		Query:    "SELECT * FROM customers",
-		Response: "xxxx",
+		Response: `[{"Address":"Some street in London","City":"London","ContactName":"Bob mum","Country":"UK","CustomerName":"Bob","PostalCode":"1ld12","id":"1"}]`,
 	}
 
 	tests := []struct {
-		name string // description of this test case
-		// Named input parameters for receiver constructor.
+		name       string
 		repository *repository.Repository
-		// Named input parameters for target function.
-		req     mcp.CallToolRequest
-		args    types.QueryRequest
-		want    *types.QueryResponse
-		wantErr bool
+		req        mcp.CallToolRequest
+		args       types.QueryRequest
+		want       *types.QueryResponse
+		wantErr    bool
 	}{
 		{name: "Happy Flow", repository: repo, req: request, args: reqArgs, want: &expected, wantErr: false},
 	}
@@ -74,40 +89,10 @@ func TestQueryHandler_ExecuteQuery(t *testing.T) {
 			if tt.wantErr {
 				t.Fatal("ExecuteQuery() succeeded unexpectedly")
 			}
-			// TODO: update the condition below to compare got with tt.want.
 			if true {
-				t.Errorf("ExecuteQuery() SSS = %v, want %v", got, tt.want)
+				assert.EqualValues(t, tt.want, got)
+				//t.Errorf("ExecuteQuery() SSS got = %v, want %v", got, tt.want)
 			}
 		})
 	}
 }
-
-// func TestPrepareJsonResp(t *testing.T) {
-// 	tests := []struct {
-// 		name string // description of this test case
-// 		// Named input parameters for target function.
-// 		d       []map[string]interface{}
-// 		want    string
-// 		wantErr bool
-// 	}{
-// 		// TODO: Add test cases.
-// 	}
-// 	for _, tt := range tests {
-// 		t.Run(tt.name, func(t *testing.T) {
-// 			got, gotErr := handlers.prepareJsonResp(tt.d)
-// 			if gotErr != nil {
-// 				if !tt.wantErr {
-// 					t.Errorf("PrepareJsonResp() failed: %v", gotErr)
-// 				}
-// 				return
-// 			}
-// 			if tt.wantErr {
-// 				t.Fatal("PrepareJsonResp() succeeded unexpectedly")
-// 			}
-// 			// TODO: update the condition below to compare got with tt.want.
-// 			if true {
-// 				t.Errorf("PrepareJsonResp() = %v, want %v", got, tt.want)
-// 			}
-// 		})
-// 	}
-// }
