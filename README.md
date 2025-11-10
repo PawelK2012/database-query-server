@@ -1,4 +1,9 @@
 # database-query-server
+
+[![Go](https://github.com/PawelK2012/database-query-server/actions/workflows/go.yml/badge.svg)](https://github.com/PawelK2012/database-query-server/actions/workflows/go.yml)
+
+[![Go Coverage](https://github.com/PawelK2012/database-query-server/wiki/coverage.svg)](https://raw.githack.com/wiki/PawelK2012/database-query-server/coverage.html)
+
 Sample MCP Server - Go (database-query-server) - built according to these [specifications](https://github.com/IBM/mcp-context-forge/issues/897) 
 
 
