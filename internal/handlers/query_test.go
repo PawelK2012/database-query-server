@@ -26,9 +26,9 @@ func TestQueryHandler_ExecuteQuery(t *testing.T) {
 	item["Country"] = "UK"
 
 	item1 := make(map[string]interface{})
-	item1["id"] = "2"
+	item1["id"] = 22
 	item1["CustomerName"] = "John"
-	item1["ContactName"] = "John mum"
+	item1["ContactName"] = true
 	item1["Address"] = "Some street in Dublin"
 	item1["City"] = "Dublin"
 	item1["PostalCode"] = "1dbld12"
@@ -44,6 +44,18 @@ func TestQueryHandler_ExecuteQuery(t *testing.T) {
 		Database: "postgres",
 		Query:    "SELECT * FROM customers",
 		Format:   "json",
+	}
+
+	reqArgsCVS := types.QueryRequest{
+		Database: "postgres",
+		Query:    "SELECT * FROM customers",
+		Format:   "csv",
+	}
+
+	reqArgsInvalidFormat := types.QueryRequest{
+		Database: "postgres",
+		Query:    "SELECT * FROM customers",
+		Format:   "invalid",
 	}
 
 	args := make(map[string]interface{})
@@ -65,6 +77,10 @@ func TestQueryHandler_ExecuteQuery(t *testing.T) {
 		Query:    "SELECT * FROM customers",
 		Response: `[{"Address":"Some street in London","City":"London","ContactName":"Bob mum","Country":"UK","CustomerName":"Bob","PostalCode":"1ld12","id":"1"}]`,
 	}
+	expectedCSVOutput := types.QueryResponse{
+		Query:    "SELECT * FROM customers",
+		Response: "Address,City,ContactName,Country,CustomerName,PostalCode,id\nSome street in London,London,Bob mum,UK,Bob,1ld12,1\n",
+	}
 
 	tests := []struct {
 		name       string
@@ -75,6 +91,10 @@ func TestQueryHandler_ExecuteQuery(t *testing.T) {
 		wantErr    bool
 	}{
 		{name: "Happy Flow", repository: repo, req: request, args: reqArgs, want: &expected, wantErr: false},
+		// {name: "Sad Flow", repository: repo, req: request, args: reqArgs, want: &expected, wantErr: true},
+		{name: "Happy Flow - to CSV export", repository: repo, req: request, args: reqArgsCVS, want: &expectedCSVOutput, wantErr: false},
+		// {name: "Happy Flow - various types", repository: repo, req: request, args: reqArgsCVS, want: &expectedCSVOutput, wantErr: false},
+		{name: "Fail - invalid format", repository: repo, req: request, args: reqArgsInvalidFormat, want: &expectedCSVOutput, wantErr: true},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -91,7 +111,6 @@ func TestQueryHandler_ExecuteQuery(t *testing.T) {
 			}
 			if true {
 				assert.EqualValues(t, tt.want, got)
-				//t.Errorf("ExecuteQuery() SSS got = %v, want %v", got, tt.want)
 			}
 		})
 	}
