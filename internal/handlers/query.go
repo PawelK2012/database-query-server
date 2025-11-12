@@ -1,12 +1,14 @@
 package handlers
 
 import (
+	"bytes"
 	"context"
 	"encoding/csv"
 	"encoding/json"
 	"fmt"
-	"log"
-	"os"
+	"reflect"
+	"sort"
+	"strconv"
 
 	"exmple.com/database-query-server/pkg/types"
 	"github.com/mark3labs/mcp-go/mcp"
@@ -28,18 +30,21 @@ func (qh *QueryHandler) ExecuteQuery(ctx context.Context, req mcp.CallToolReques
 	switch args.Format {
 	case "json":
 		fmt.Println("encoding to JSON")
-		formattedResp, err = qh.dataToJson(qResp)
+		formattedResp, err = dataToJson(qResp)
 		if err != nil {
-			//formattedResp = fmt.Sprintf("encoding execute_query failed %v", err)
-			return nil, fmt.Errorf("encoding execute_query failed %v", err)
+			return nil, fmt.Errorf("failed to encode execute_query response to JSON format %v", err)
 		}
 	case "csv":
 		fmt.Println("encoding to CSV")
-		qh.dataToCSV(qResp)
+		formattedResp, err = dataToCSV(qResp)
+		if err != nil {
+			return nil, fmt.Errorf("failed to encode execute_query response to CSV format %v", err)
+		}
 	case "table":
 		fmt.Println("encoding to table")
+	default:
+		return nil, fmt.Errorf("format %v not supported", args.Format)
 	}
-	//add default to switch
 
 	response := &types.QueryResponse{
 		Query:    args.Query,
@@ -48,56 +53,66 @@ func (qh *QueryHandler) ExecuteQuery(ctx context.Context, req mcp.CallToolReques
 	return response, nil
 }
 
-func (qh *QueryHandler) dataToJson(d []map[string]interface{}) (string, error) {
-	enco, err := json.Marshal(d)
+func dataToJson(data []map[string]interface{}) (string, error) {
+	enco, err := json.Marshal(data)
 	if err != nil {
 		return "", err
 	}
 	return string(enco), nil
 }
 
-func (qh *QueryHandler) dataToCSV(d []map[string]interface{}) ([][]string, error) {
-	var records [][]string
-	var headers []string
-	var val []string
+func dataToCSV(data []map[string]interface{}) (string, error) {
+	if len(data) == 0 {
+		return "", fmt.Errorf("no data to convert")
+	}
 
-	for k, v := range d {
-		// The system should capture headers only during the initial run
-		if k == 0 {
-			headers = qh.getCSVHeaders(v)
-		}
-		for _, y := range v {
-			enco, err := json.Marshal(y)
-			if err != nil {
-				return nil, err
+	// Extract headers from the first map
+	headers := make([]string, 0, len(data[0]))
+	for key := range data[0] {
+		headers = append(headers, key)
+	}
+	// Map iteration order is intentionally randomized, so we use sorting for consistency
+	// See https://go.dev/blog/maps#iteration-order
+	sort.Strings(headers)
+
+	var buf bytes.Buffer
+	writer := csv.NewWriter(&buf)
+
+	// Write headers
+	if err := writer.Write(headers); err != nil {
+		return "", fmt.Errorf("failed to write headers: %w", err)
+	}
+
+	// Write rows
+	for _, row := range data {
+		record := make([]string, len(headers))
+		for i, header := range headers {
+			if val, ok := row[header]; ok && val != nil {
+				switch v := val.(type) {
+				case string:
+					record[i] = v
+				case fmt.Stringer:
+					record[i] = v.String()
+				case int, int8, int16, int32, int64:
+					record[i] = fmt.Sprintf("%d", v)
+				case float32, float64:
+					record[i] = strconv.FormatFloat(reflect.ValueOf(v).Float(), 'f', -1, 64)
+				case bool:
+					record[i] = strconv.FormatBool(v)
+				default:
+					record[i] = fmt.Sprintf("%v", v)
+				}
 			}
-			val = append(val, string(enco))
+		}
+		if err := writer.Write(record); err != nil {
+			return "", fmt.Errorf("failed to write record: %w", err)
 		}
 	}
-	//headers = append(headers, val...)
 
-	records = append(records, headers)
-	records = append(records, val)
-
-	fmt.Println("0000")
-	w := csv.NewWriter(os.Stdout)
-	w.WriteAll(records) // calls Flush internally
-	fmt.Println("0000")
-	if err := w.Error(); err != nil {
-		log.Fatalln("error writing csv:", err)
+	writer.Flush()
+	if err := writer.Error(); err != nil {
+		return "", fmt.Errorf("csv write error: %w", err)
 	}
 
-	fmt.Println("11*********")
-	fmt.Printf("== finalllllllll CSSSVVVV %v", records)
-	fmt.Println("22*********")
-	return records, nil
-}
-
-func (qh *QueryHandler) getCSVHeaders(d map[string]interface{}) []string {
-	var headers []string
-	for header := range d {
-		headers = append(headers, header)
-	}
-
-	return headers
+	return buf.String(), nil
 }
