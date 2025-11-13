@@ -14,6 +14,10 @@ import (
 	"github.com/mark3labs/mcp-go/mcp"
 )
 
+func (qh *QueryHandler) GetSchema(ctx context.Context, req mcp.CallToolRequest, args types.QueryRequest) (*types.QueryResponse, error) {
+	return nil, nil
+}
+
 func (qh *QueryHandler) ExecuteQuery(ctx context.Context, req mcp.CallToolRequest, args types.QueryRequest) (*types.QueryResponse, error) {
 	// Input is already validated and bound to SearchRequest struct
 	limit := args.Limit
