@@ -14,8 +14,24 @@ import (
 	"github.com/mark3labs/mcp-go/mcp"
 )
 
-func (qh *QueryHandler) GetSchema(ctx context.Context, req mcp.CallToolRequest, args types.QueryRequest) (*types.QueryResponse, error) {
-	return nil, nil
+func (qh *QueryHandler) GetSchema(ctx context.Context, req mcp.CallToolRequest, args types.SchemaRequest) (*types.QueryResponse, error) {
+	fmt.Printf("execute GetSchema for tables: %v deatiled: %v", args.Tables, args.Detailed)
+	res, err := qh.repository.Postgress.GetSchema(ctx, args.Tables)
+	if err != nil {
+		return nil, fmt.Errorf("get_schema for table %v failed %v", args.Tables, err)
+	}
+
+	jsonRes, err := dataToJson(res)
+	if err != nil {
+		return nil, fmt.Errorf("failed to encode execute_query response to JSON format %v", err)
+	}
+
+	response := &types.QueryResponse{
+		Query:    "get_schema",
+		Response: jsonRes,
+		Format:   "json",
+	}
+	return response, nil
 }
 
 func (qh *QueryHandler) ExecuteQuery(ctx context.Context, req mcp.CallToolRequest, args types.QueryRequest) (*types.QueryResponse, error) {
@@ -53,6 +69,7 @@ func (qh *QueryHandler) ExecuteQuery(ctx context.Context, req mcp.CallToolReques
 	response := &types.QueryResponse{
 		Query:    args.Query,
 		Response: formattedResp,
+		Format:   args.Format,
 	}
 	return response, nil
 }

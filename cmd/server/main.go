@@ -42,13 +42,13 @@ func main() {
 
 	s.AddTool(
 		mcp.NewTool("get_schema",
-			mcp.WithDescription("Demonstrate secure database operations via MCP"),
+			mcp.WithDescription("Retrieve database schema information"),
 			mcp.WithTitleAnnotation("Execute get_schema operations"),
 			mcp.WithString("schema", mcp.Description("DB schema")),
 			mcp.WithInputSchema[types.SchemaRequest](),
 			mcp.WithOutputSchema[types.QueryResponse](),
 		),
-		mcp.NewStructuredToolHandler(qh.ExecuteQuery),
+		mcp.NewStructuredToolHandler(qh.GetSchema),
 	)
 
 	// Start StreamableHTTP server

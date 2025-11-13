@@ -73,15 +73,18 @@ func TestQueryHandler_ExecuteQuery(t *testing.T) {
 	expected := types.QueryResponse{
 		Query:    "SELECT * FROM customers",
 		Response: `[{"Address":"Some street in London","City":"London","ContactName":"Bob mum","Country":"UK","CustomerName":"Bob","PostalCode":"1ld12","id":"1"}]`,
+		Format:   "json",
 	}
 	expectedCSVOutput := types.QueryResponse{
 		Query:    "SELECT * FROM customers",
 		Response: "Address,City,ContactName,Country,CustomerName,PostalCode,id\nSome street in London,London,Bob mum,UK,Bob,1ld12,1\n",
+		Format:   "csv",
 	}
 
 	expectedCSVOutputWithDifferentTypes := types.QueryResponse{
 		Query:    "SELECT * FROM customers",
 		Response: "Address,City,ContactName,Country,PostalCode,id,price\n,Dublin,true,Ireland,1dbld12,22,123.78\n",
+		Format:   "csv",
 	}
 
 	tests := []struct {
