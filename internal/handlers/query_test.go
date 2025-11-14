@@ -125,3 +125,70 @@ func TestQueryHandler_ExecuteQuery(t *testing.T) {
 		})
 	}
 }
+
+func TestQueryHandler_GetSchema(t *testing.T) {
+	//mocked table rows
+	var mtbl []map[string]interface{}
+	row2 := make(map[string]interface{})
+	row2["column_name"] = "customername"
+	row2["data_type"] = "character varying"
+	row2["character_maximum_length"] = int64(200)
+
+	mtbl = append(mtbl, row2)
+
+	var tbls []string
+	tbls = append(tbls, "customers")
+	reqArgs := types.SchemaRequest{
+		Database: "postgres",
+		Tables:   tbls,
+		Detailed: true,
+	}
+	args := make(map[string]interface{})
+	args["database"] = "postgres"
+	args["tables"] = tbls
+	args["detailed"] = true
+
+	request := mcp.CallToolRequest{
+		Params: mcp.CallToolParams{
+			Name:      "get_schema",
+			Arguments: args,
+		},
+	}
+
+	expected := types.QueryResponse{
+		Query:    "get_schema",
+		Response: `[{"character_maximum_length":200,"column_name":"customername","data_type":"character varying"}]`,
+		Format:   "json",
+	}
+	tests := []struct {
+		name       string
+		repository *repository.Repository
+		req        mcp.CallToolRequest
+		args       types.SchemaRequest
+		tableMock  []map[string]interface{}
+		want       *types.QueryResponse
+		wantErr    bool
+	}{
+		{name: "Happy Flow", req: request, args: reqArgs, tableMock: mtbl, want: &expected, wantErr: false},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			pg, _ := database.NewPostgresClientMock(tt.tableMock, false)
+			repo := &repository.Repository{Postgress: pg}
+			qh := handlers.NewQueryHandler(repo)
+			got, gotErr := qh.GetSchema(context.Background(), tt.req, tt.args)
+			if gotErr != nil {
+				if !tt.wantErr {
+					t.Errorf("GetSchema() failed: %v", gotErr)
+				}
+				return
+			}
+			if tt.wantErr {
+				t.Fatal("GetSchema() succeeded unexpectedly")
+			}
+			if true {
+				assert.EqualValues(t, tt.want, got)
+			}
+		})
+	}
+}
