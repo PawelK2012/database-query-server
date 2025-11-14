@@ -20,6 +20,7 @@ type Postgress struct {
 	Pg *sql.DB
 }
 
+// NewPostgressClient creates a new PostgreSQL client
 func NewPostgressClient() (ClientInterface, error) {
 	// remove host=postgresql when running localy
 	connStr := fmt.Sprintf("user=%s dbname=%s password=%s sslmode=disable", DB_USER, DB_NAME, DB_PASSWORD)
@@ -35,7 +36,7 @@ func NewPostgressClient() (ClientInterface, error) {
 	}, err
 }
 
-// ExecQuery execute SQL queries with prepared statements
+// ExecQuery executes a query on the PostgreSQL database and returns the results as a slice of maps
 func (s *Postgress) ExecQuery(ctx context.Context, query string, params map[string]any) ([]map[string]interface{}, error) {
 	// remove
 	log.Printf("ExecQuery query: %v \n", query)
@@ -120,7 +121,7 @@ func (s *Postgress) ExecQuery(ctx context.Context, query string, params map[stri
 	return allMaps, nil
 }
 
-// ExecQuery execute SQL queries with prepared statements
+// GetSchema retrieves the schema information for the specified tables
 func (s *Postgress) GetSchema(ctx context.Context, tables []string) ([]map[string]interface{}, error) {
 	log.Printf("GetSchema params: %v \n", tables)
 
