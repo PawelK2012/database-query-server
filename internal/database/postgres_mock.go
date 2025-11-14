@@ -23,3 +23,11 @@ func (c *PostgresClientMock) ExecQuery(ctx context.Context, query string, params
 	result = append(result, db)
 	return result, nil
 }
+
+func (c *PostgresClientMock) GetSchema(ctx context.Context, tables []string) ([]map[string]interface{}, error) {
+	//TODO handle multiple rows
+	db := c.mockSQLTable[0]
+	var result []map[string]interface{}
+	result = append(result, db)
+	return result, nil
+}
