@@ -101,19 +101,18 @@ func (s *Postgress) ExecQuery(ctx context.Context, query string, params map[stri
 			}
 			allMaps = append(allMaps, resultMap)
 		}
-	}
+		// If the database is being written to ensure to check for Close
+		// errors that may be returned from the driver. The query may
+		// encounter an auto-commit error and be forced to rollback changes.
+		err = rows.Close()
+		if err != nil {
+			return nil, err
+		}
 
-	// If the database is being written to ensure to check for Close
-	// errors that may be returned from the driver. The query may
-	// encounter an auto-commit error and be forced to rollback changes.
-	err = rows.Close()
-	if err != nil {
-		return nil, err
-	}
-
-	// Rows.Err will report the last error encountered by Rows.Scan.
-	if err := rows.Err(); err != nil {
-		return nil, err
+		// Rows.Err will report the last error encountered by Rows.Scan.
+		if err := rows.Err(); err != nil {
+			return nil, err
+		}
 	}
 
 	// remove
@@ -138,13 +137,13 @@ func (s *Postgress) GetSchema(ctx context.Context, tables []string) ([]map[strin
 	var args []any
 
 	for k := range tables {
-		// fmt.Printf("key[%s] value[%s]\n", k, tables[k])
 		args = append(args, tables[k])
 	}
 	rows, err = stmt.QueryContext(ctx, args...)
 	if err != nil {
 		return nil, err
 	}
+	defer rows.Close()
 
 	columns, err := rows.Columns()
 	if err != nil {
@@ -167,6 +166,19 @@ func (s *Postgress) GetSchema(ctx context.Context, tables []string) ([]map[strin
 			resultMap[columns[i]] = val
 		}
 		allMaps = append(allMaps, resultMap)
+	}
+
+	// If the database is being written to ensure to check for Close
+	// errors that may be returned from the driver. The query may
+	// encounter an auto-commit error and be forced to rollback changes.
+	err = rows.Close()
+	if err != nil {
+		return nil, err
+	}
+
+	// Rows.Err will report the last error encountered by Rows.Scan.
+	if err := rows.Err(); err != nil {
+		return nil, err
 	}
 	return allMaps, nil
 }

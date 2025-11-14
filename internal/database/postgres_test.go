@@ -61,6 +61,44 @@ func TestExecQuery_Happy_Path(t *testing.T) {
 	assert.EqualValues(t, expected, result)
 }
 
+func TestExecQuery_Happy_Path_Query_Will_Not_Return_Rows(t *testing.T) {
+
+	db, mock, err := sqlmock.New()
+	if err != nil {
+		t.Errorf("ExecQuery() failed: %v", err)
+		return
+	}
+	defer db.Close()
+
+	pg := &database.Postgress{Pg: db}
+
+	ctx := context.Background()
+	query := "CREATE SCHEMA new_schema"
+
+	rows := sqlmock.NewRows([]string{})
+
+	var expected []map[string]interface{}
+	row := make(map[string]interface{})
+	row["message"] = "success"
+
+	expected = append(expected, row)
+
+	// query params
+	par := make(map[string]any)
+	mock.ExpectPrepare(regexp.QuoteMeta(query)).ExpectQuery().WillReturnRows(rows)
+
+	result, err := pg.ExecQuery(ctx, query, par)
+	if err != nil {
+		t.Errorf("ExecQuery() failed: %v", err)
+		return
+	}
+	// we make sure that all expectations were met
+	if err := mock.ExpectationsWereMet(); err != nil {
+		t.Errorf("there were unfulfilled expectations: %s", err)
+	}
+	assert.EqualValues(t, expected, result)
+}
+
 func TestExecQuery_Success_Selecting_2_Row(t *testing.T) {
 
 	db, mock, err := sqlmock.New()

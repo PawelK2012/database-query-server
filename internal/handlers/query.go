@@ -14,6 +14,7 @@ import (
 	"github.com/mark3labs/mcp-go/mcp"
 )
 
+// GetSchema
 func (qh *QueryHandler) GetSchema(ctx context.Context, req mcp.CallToolRequest, args types.SchemaRequest) (*types.QueryResponse, error) {
 	fmt.Printf("execute GetSchema for tables: %v deatiled: %v", args.Tables, args.Detailed)
 	res, err := qh.repository.Postgress.GetSchema(ctx, args.Tables)
