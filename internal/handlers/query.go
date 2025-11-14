@@ -14,7 +14,7 @@ import (
 	"github.com/mark3labs/mcp-go/mcp"
 )
 
-// GetSchema
+// GetSchema retrieves the schema information for the specified tables and formats response for MCP client
 func (qh *QueryHandler) GetSchema(ctx context.Context, req mcp.CallToolRequest, args types.SchemaRequest) (*types.QueryResponse, error) {
 	fmt.Printf("execute GetSchema for tables: %v deatiled: %v", args.Tables, args.Detailed)
 	res, err := qh.repository.Postgress.GetSchema(ctx, args.Tables)
@@ -35,6 +35,7 @@ func (qh *QueryHandler) GetSchema(ctx context.Context, req mcp.CallToolRequest, 
 	return response, nil
 }
 
+// ExecuteQuery executes a SQL query and returns the results in the specified format
 func (qh *QueryHandler) ExecuteQuery(ctx context.Context, req mcp.CallToolRequest, args types.QueryRequest) (*types.QueryResponse, error) {
 	// Input is already validated and bound to SearchRequest struct
 	limit := args.Limit
@@ -75,6 +76,7 @@ func (qh *QueryHandler) ExecuteQuery(ctx context.Context, req mcp.CallToolReques
 	return response, nil
 }
 
+// dataToJson converts a slice of maps containing data into a JSON string
 func dataToJson(data []map[string]interface{}) (string, error) {
 	enco, err := json.Marshal(data)
 	if err != nil {
@@ -83,6 +85,7 @@ func dataToJson(data []map[string]interface{}) (string, error) {
 	return string(enco), nil
 }
 
+// dataToCSV converts a slice of maps into a CSV string
 func dataToCSV(data []map[string]interface{}) (string, error) {
 	if len(data) == 0 {
 		return "", fmt.Errorf("no data to convert")
