@@ -73,6 +73,8 @@ func (s *Postgress) ExecQuery(ctx context.Context, query string, params map[stri
 		return nil, err
 	}
 
+	defer rows.Close()
+
 	if len(columns) == 0 {
 		// Default response for operations that don't return rows
 		// ie. CREATE SCHEMA schema_name OR INSERT INTO schema_name.table etc
@@ -119,6 +121,7 @@ func (s *Postgress) ExecQuery(ctx context.Context, query string, params map[stri
 	return allMaps, nil
 }
 
+// ExecQuery execute SQL queries with prepared statements
 func (s *Postgress) GetSchema(ctx context.Context, tables []string) ([]map[string]interface{}, error) {
 	log.Printf("GetSchema params: %v \n", tables)
 
@@ -135,7 +138,7 @@ func (s *Postgress) GetSchema(ctx context.Context, tables []string) ([]map[strin
 	var args []any
 
 	for k := range tables {
-		fmt.Printf("key[%s] value[%s]\n", k, tables[k])
+		// fmt.Printf("key[%s] value[%s]\n", k, tables[k])
 		args = append(args, tables[k])
 	}
 	rows, err = stmt.QueryContext(ctx, args...)

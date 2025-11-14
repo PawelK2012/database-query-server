@@ -127,3 +127,46 @@ func TestExecQuery_Select_All(t *testing.T) {
 	}
 
 }
+
+// func TestGetSchema_Happy_Path(t *testing.T) {
+
+// 	db, mock, err := sqlmock.New()
+// 	if err != nil {
+// 		t.Errorf("ExecQuery() failed: %v", err)
+// 		return
+// 	}
+// 	defer db.Close()
+
+// 	pg := &database.Postgress{Pg: db}
+
+// 	ctx := context.Background()
+// 	query := `select column_name, data_type, character_maximum_length from INFORMATION_SCHEMA.COLUMNS where table_name =$1;`
+
+// 	// expected rows to return
+// 	rows := sqlmock.NewRows([]string{"column_name", "data_type", "character_maximum_length"}).
+// 		AddRow("id", "integer", "null").
+// 		AddRow("customername", "character varying", 200).
+// 		AddRow("contactname", "character varying", 250)
+
+// 	// expected := "[]map[string]interface {}([]map[string]interface {}{map[string]interface {}{"character_maximum_length":"null", "column_name":"id", "data_type":"integer"}, map[string]interface {}{"character_maximum_length":200, "column_name":"customername", "data_type":"character varying"}, map[string]interface {}{"character_maximum_length":250, "column_name":"contactname", "data_type":"character varying"}})"
+
+// 	var tables []string
+// 	tbl := append(tables, "customers")
+
+// 	mock.ExpectPrepare(regexp.QuoteMeta(query)).ExpectQuery().WithArgs(tbl[0]).WillReturnRows(rows)
+
+// 	result, err := pg.GetSchema(ctx, tbl)
+// 	if err != nil {
+// 		t.Errorf("ExecQuery() failed: %v", err)
+// 		return
+// 	}
+// 	log.Printf("resultsssss %v", result)
+
+// 	// we make sure that all expectations were met
+// 	if err := mock.ExpectationsWereMet(); err != nil {
+// 		t.Errorf("there were unfulfilled expectations: %s", err)
+// 	}
+
+// 	assert.EqualValues(t, "some data", result)
+
+// }

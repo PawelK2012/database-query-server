@@ -23,7 +23,7 @@ func (qh *QueryHandler) GetSchema(ctx context.Context, req mcp.CallToolRequest, 
 
 	jsonRes, err := dataToJson(res)
 	if err != nil {
-		return nil, fmt.Errorf("failed to encode execute_query response to JSON format %v", err)
+		return nil, fmt.Errorf("failed to encode get_schema response to JSON format %v", err)
 	}
 
 	response := &types.QueryResponse{
