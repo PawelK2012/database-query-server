@@ -6,9 +6,11 @@ import (
 	"encoding/csv"
 	"encoding/json"
 	"fmt"
+	"html"
 	"reflect"
 	"sort"
 	"strconv"
+	"strings"
 
 	"exmple.com/database-query-server/pkg/types"
 	"github.com/mark3labs/mcp-go/mcp"
@@ -51,19 +53,20 @@ func (qh *QueryHandler) ExecuteQuery(ctx context.Context, req mcp.CallToolReques
 	var formattedResp string
 	switch args.Format {
 	case "json":
-		fmt.Println("encoding to JSON")
 		formattedResp, err = dataToJson(qResp)
 		if err != nil {
 			return nil, fmt.Errorf("failed to encode execute_query response to JSON format %v", err)
 		}
 	case "csv":
-		fmt.Println("encoding to CSV")
 		formattedResp, err = dataToCSV(qResp)
 		if err != nil {
 			return nil, fmt.Errorf("failed to encode execute_query response to CSV format %v", err)
 		}
 	case "table":
-		fmt.Println("encoding to table")
+		formattedResp, err = dataHTMLTable(qResp)
+		if err != nil {
+			return nil, fmt.Errorf("failed to encode execute_query response to HTML table format %v", err)
+		}
 	default:
 		return nil, fmt.Errorf("format %v not supported", args.Format)
 	}
@@ -140,4 +143,65 @@ func dataToCSV(data []map[string]interface{}) (string, error) {
 	}
 
 	return buf.String(), nil
+}
+
+// dataHTMLTable converts a slice of maps into an HTML table string.
+// - rows: each map represents one table row (key -> cell value).
+// - Columns are the union of all map keys, sorted alphabetically for deterministic output.
+func dataHTMLTable(rows []map[string]interface{}) (string, error) {
+	var b strings.Builder
+
+	// start table
+	b.WriteString("<table>")
+
+	// no rows - return error
+	if len(rows) == 0 {
+		return "", fmt.Errorf("no data to convert")
+	}
+
+	// collect all column names
+	colSet := make(map[string]struct{})
+	for _, r := range rows {
+		for k := range r {
+			colSet[k] = struct{}{}
+		}
+	}
+
+	cols := make([]string, 0, len(colSet))
+	for k := range colSet {
+		cols = append(cols, k)
+	}
+	sort.Strings(cols) // deterministic order
+
+	// header
+	b.WriteString("<thead><tr>")
+	for _, c := range cols {
+		b.WriteString("<th>")
+		b.WriteString(html.EscapeString(c))
+		b.WriteString("</th>")
+	}
+	b.WriteString("</tr></thead>")
+
+	// body
+	b.WriteString("<tbody>")
+	for _, r := range rows {
+		b.WriteString("<tr>")
+		for _, c := range cols {
+			b.WriteString("<td>")
+			val, ok := r[c]
+			if ok && val != nil {
+				// convert value to string and escape HTML
+				b.WriteString(html.EscapeString(fmt.Sprint(val)))
+			}
+			// if missing or nil -> empty cell
+			b.WriteString("</td>")
+		}
+		b.WriteString("</tr>")
+	}
+	b.WriteString("</tbody>")
+
+	// end table
+	b.WriteString("</table>")
+
+	return b.String(), nil
 }

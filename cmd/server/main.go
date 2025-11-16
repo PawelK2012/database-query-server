@@ -13,7 +13,7 @@ import (
 )
 
 func main() {
-	// Instantiate repository to open the Redis connection and create the Cloudant client
+	// Instantiate repository
 	repository, err := repository.New()
 	if err != nil {
 		log.Fatal(context.Background(), "Can not instantiate repository package, error: %v", err)

@@ -2,6 +2,7 @@ package database_test
 
 import (
 	"context"
+	"fmt"
 	"log"
 	"regexp"
 	"testing"
@@ -59,6 +60,35 @@ func TestExecQuery_Happy_Path(t *testing.T) {
 		t.Errorf("there were unfulfilled expectations: %s", err)
 	}
 	assert.EqualValues(t, expected, result)
+}
+
+func TestExecQuery_Sad_Path(t *testing.T) {
+
+	db, mock, err := sqlmock.New()
+	if err != nil {
+		t.Errorf("ExecQuery() failed: %v", err)
+		return
+	}
+	defer db.Close()
+
+	pg := &database.Postgress{Pg: db}
+
+	ctx := context.Background()
+	query := "SELECT id, name FROM users WHERE id = $1"
+
+	expected := fmt.Errorf("some error")
+
+	// query params
+	par := make(map[string]any)
+	par["1"] = "Alice"
+
+	mock.ExpectPrepare(regexp.QuoteMeta("SELECT id, name FROM users WHERE id = $1")).ExpectQuery().WithArgs().WillReturnError(fmt.Errorf("some error"))
+
+	_, err = pg.ExecQuery(ctx, query, par)
+	if err != nil {
+		assert.EqualValues(t, expected, err)
+		return
+	}
 }
 
 func TestExecQuery_Happy_Path_Query_Will_Not_Return_Rows(t *testing.T) {

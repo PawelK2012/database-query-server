@@ -58,6 +58,43 @@ $ docker compose down
 # To delete all data run:
 $ docker compose down -v
 ```
+## Usage Examples
+
+### Execute a simple SELECT query
+```json
+{
+  "jsonrpc": "2.0",
+  "id": 1,
+  "method": "tools/call",
+  "params": {
+    "name": "execute_query",
+    "arguments": {
+      "database": "primary",
+      "query": "SELECT id, name, email FROM users WHERE active = $1",
+      "parameters": {"1": true},
+      "format": "json",
+      "limit": 100
+    }
+  }
+}
+```
+### Execute prepared statements safely
+```json
+{
+  "jsonrpc": "2.0",
+  "id": 1,
+  "method": "tools/call",
+  "params": {
+    "name": "execute_prepared",
+    "arguments": {
+      "database": "primary",
+      "StatementName": "SELECT id, name, email FROM users WHERE active = $1",
+      "parameters": {"1": true},
+      "format": "json"
+    }
+  }
+}
+```
 
 ### Execute a simple SELECT query
 ```json
