@@ -79,6 +79,47 @@ func (qh *QueryHandler) ExecuteQuery(ctx context.Context, req mcp.CallToolReques
 	return response, nil
 }
 
+func (qh *QueryHandler) ExecutePrepared(ctx context.Context, req mcp.CallToolRequest, args types.PreparedRequest) (*types.QueryResponse, error) {
+	// Input is already validated and bound to SearchRequest struct
+	// limit := args.Limit
+	// if limit <= 0 {
+	// 	limit = 10
+	// }
+
+	fmt.Printf("execute_prepared handler got query %v with format %v", args.StatementName, args.Format)
+	qResp, err := qh.repository.Postgress.ExecPrepared(ctx, args.StatementName, args.Parameters)
+	if err != nil {
+		return nil, fmt.Errorf("execute_prepared %v failed %v", args.StatementName, err)
+	}
+	var formattedResp string
+	switch args.Format {
+	case "json":
+		formattedResp, err = dataToJson(qResp)
+		if err != nil {
+			return nil, fmt.Errorf("failed to encode execute_query response to JSON format %v", err)
+		}
+	case "csv":
+		formattedResp, err = dataToCSV(qResp)
+		if err != nil {
+			return nil, fmt.Errorf("failed to encode execute_query response to CSV format %v", err)
+		}
+	case "table":
+		formattedResp, err = dataHTMLTable(qResp)
+		if err != nil {
+			return nil, fmt.Errorf("failed to encode execute_query response to HTML table format %v", err)
+		}
+	default:
+		return nil, fmt.Errorf("format %v not supported", args.Format)
+	}
+
+	response := &types.QueryResponse{
+		Query:    args.StatementName,
+		Response: formattedResp,
+		Format:   args.Format,
+	}
+	return response, nil
+}
+
 // dataToJson converts a slice of maps containing data into a JSON string
 func dataToJson(data []map[string]interface{}) (string, error) {
 	enco, err := json.Marshal(data)
