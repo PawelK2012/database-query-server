@@ -121,8 +121,30 @@ func (s *Postgress) ExecQuery(ctx context.Context, query string, params map[stri
 	return allMaps, nil
 }
 
+// ExecPrepared executes a prepared statement with the given parameters and returns the results as a slice of maps.
 func (s *Postgress) ExecPrepared(ctx context.Context, statement string, params []any) ([]map[string]interface{}, error) {
-	return nil, nil
+	var allMaps []map[string]interface{}
+
+	stmt, err := s.Pg.PrepareContext(ctx, statement)
+	if err != nil {
+		return nil, err
+	}
+	defer stmt.Close()
+	rows, err := stmt.QueryContext(ctx, params...)
+	if err != nil {
+		return nil, err
+	}
+	columns, err := rows.Columns()
+	if err != nil {
+		return nil, err
+	}
+
+	defer rows.Close()
+	allMaps, err = s.itterateRows(rows, len(columns), columns)
+	if err != nil {
+		return nil, err
+	}
+	return allMaps, nil
 }
 
 // GetSchema retrieves the schema information for the specified tables
@@ -177,6 +199,42 @@ func (s *Postgress) GetSchema(ctx context.Context, tables []string) ([]map[strin
 	// errors that may be returned from the driver. The query may
 	// encounter an auto-commit error and be forced to rollback changes.
 	err = rows.Close()
+	if err != nil {
+		return nil, err
+	}
+
+	// Rows.Err will report the last error encountered by Rows.Scan.
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return allMaps, nil
+}
+
+// TODO refactor other func to use this
+func (s *Postgress) itterateRows(rows *sql.Rows, sliceSize int, columns []string) ([]map[string]interface{}, error) {
+	// The system handles dynamic queries, so the results are scanned into a slice of pointers to interface{} variables.
+	var allMaps []map[string]interface{}
+	for rows.Next() {
+		values := make([]interface{}, sliceSize)
+		pointers := make([]interface{}, sliceSize)
+		for i := range values {
+			pointers[i] = &values[i]
+		}
+		if err := rows.Scan(pointers...); err != nil {
+			// Check for a scan error.
+			// Query rows will be closed with defer.
+			return nil, err
+		}
+		resultMap := make(map[string]interface{})
+		for i, val := range values {
+			resultMap[columns[i]] = val
+		}
+		allMaps = append(allMaps, resultMap)
+	}
+	// If the database is being written to ensure to check for Close
+	// errors that may be returned from the driver. The query may
+	// encounter an auto-commit error and be forced to rollback changes.
+	err := rows.Close()
 	if err != nil {
 		return nil, err
 	}

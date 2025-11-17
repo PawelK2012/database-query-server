@@ -12,24 +12,30 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestExecQuery_Happy_Path(t *testing.T) {
+func TestExecQuery_Happy_Path_Select_All(t *testing.T) {
 
 	db, mock, err := sqlmock.New()
 	if err != nil {
 		t.Errorf("ExecQuery() failed: %v", err)
 		return
 	}
+
 	defer db.Close()
 
 	pg := &database.Postgress{Pg: db}
 
 	ctx := context.Background()
-	query := "SELECT id, name FROM users WHERE id = $1"
+	query := "SELECT * FROM users;"
 
 	// expected rows to return
 	rows := sqlmock.NewRows([]string{"id", "name"}).
 		AddRow(1, "Alice").
 		AddRow(2, "Bob")
+
+	// query params
+	par := make(map[string]any)
+	par["1"] = "Alice"
+	par["2"] = "Bob"
 
 	var expected []map[string]interface{}
 	row := make(map[string]interface{})
@@ -42,11 +48,7 @@ func TestExecQuery_Happy_Path(t *testing.T) {
 
 	expected = append(expected, row, row2)
 
-	// query params
-	par := make(map[string]any)
-	par["1"] = "Alice"
-
-	mock.ExpectPrepare(regexp.QuoteMeta("SELECT id, name FROM users WHERE id = $1")).ExpectQuery().WithArgs(par["1"]).WillReturnRows(rows)
+	mock.ExpectPrepare(regexp.QuoteMeta(query)).ExpectQuery().WithArgs().WillReturnRows(rows)
 
 	result, err := pg.ExecQuery(ctx, query, par)
 	if err != nil {
@@ -74,7 +76,7 @@ func TestExecQuery_Sad_Path(t *testing.T) {
 	pg := &database.Postgress{Pg: db}
 
 	ctx := context.Background()
-	query := "SELECT id, name FROM users WHERE id = $1"
+	query := "SELECT * FROM users"
 
 	expected := fmt.Errorf("some error")
 
@@ -82,7 +84,7 @@ func TestExecQuery_Sad_Path(t *testing.T) {
 	par := make(map[string]any)
 	par["1"] = "Alice"
 
-	mock.ExpectPrepare(regexp.QuoteMeta("SELECT id, name FROM users WHERE id = $1")).ExpectQuery().WithArgs().WillReturnError(fmt.Errorf("some error"))
+	mock.ExpectPrepare(regexp.QuoteMeta(query)).ExpectQuery().WithArgs().WillReturnError(fmt.Errorf("some error"))
 
 	_, err = pg.ExecQuery(ctx, query, par)
 	if err != nil {
@@ -129,7 +131,7 @@ func TestExecQuery_Happy_Path_Query_Will_Not_Return_Rows(t *testing.T) {
 	assert.EqualValues(t, expected, result)
 }
 
-func TestExecQuery_Success_Selecting_2_Row(t *testing.T) {
+func TestExecPrepared_Happy_Path(t *testing.T) {
 
 	db, mock, err := sqlmock.New()
 	if err != nil {
@@ -141,7 +143,7 @@ func TestExecQuery_Success_Selecting_2_Row(t *testing.T) {
 	pg := &database.Postgress{Pg: db}
 
 	ctx := context.Background()
-	query := "SELECT id, name FROM users WHERE id = $1"
+	query := "SELECT id, name FROM users WHERE id=$1"
 
 	// expected rows to return
 	rows := sqlmock.NewRows([]string{"id", "name"}).
@@ -154,69 +156,17 @@ func TestExecQuery_Success_Selecting_2_Row(t *testing.T) {
 
 	expected = append(expected, row)
 
-	// query params
-	par := make(map[string]any)
-	par["1"] = "Alice"
+	params := []any{
+		1,
+	}
 
-	mock.ExpectPrepare(regexp.QuoteMeta(query)).ExpectQuery().WithArgs(par["1"]).WillReturnRows(rows)
+	mock.ExpectPrepare(regexp.QuoteMeta(query)).ExpectQuery().WithArgs(params[0]).WillReturnRows(rows)
 
-	result, err := pg.ExecQuery(ctx, query, par)
+	result, err := pg.ExecPrepared(ctx, query, params)
 	if err != nil {
 		t.Errorf("ExecQuery() failed: %v", err)
 		return
 	}
-
-	// we make sure that all expectations were met
-	if err := mock.ExpectationsWereMet(); err != nil {
-		t.Errorf("there were unfulfilled expectations: %s", err)
-	}
-	assert.EqualValues(t, expected, result)
-}
-
-func TestExecQuery_Select_All(t *testing.T) {
-
-	db, mock, err := sqlmock.New()
-	if err != nil {
-		t.Errorf("ExecQuery() failed: %v", err)
-		return
-	}
-
-	defer db.Close()
-
-	pg := &database.Postgress{Pg: db}
-
-	ctx := context.Background()
-	query := "select * from users;"
-
-	// expected rows to return
-	rows := sqlmock.NewRows([]string{"id", "name"}).
-		AddRow(1, "Alice").
-		AddRow(2, "Bob")
-
-	// query params
-	par := make(map[string]any)
-	par["1"] = "Alice"
-	par["2"] = "Bob"
-
-	var expected []map[string]interface{}
-	row := make(map[string]interface{})
-	row["id"] = int64(1)
-	row["name"] = "Alice"
-
-	row2 := make(map[string]interface{})
-	row2["id"] = int64(2)
-	row2["name"] = "Bob"
-
-	expected = append(expected, row, row2)
-
-	mock.ExpectPrepare(regexp.QuoteMeta("select * from users;")).ExpectQuery().WithArgs().WillReturnRows(rows)
-
-	result, err := pg.ExecQuery(ctx, query, par)
-	if err != nil {
-		t.Errorf("ExecQuery() failed: %v", err)
-		return
-	}
-	log.Printf("resultsssss %v", result)
 
 	// we make sure that all expectations were met
 	if err := mock.ExpectationsWereMet(); err != nil {

@@ -48,7 +48,7 @@ func main() {
 			mcp.WithInputSchema[types.PreparedRequest](),
 			mcp.WithOutputSchema[types.QueryResponse](),
 		),
-		mcp.NewStructuredToolHandler(qh.ExecuteQuery),
+		mcp.NewStructuredToolHandler(qh.ExecutePrepared),
 	)
 
 	s.AddTool(
