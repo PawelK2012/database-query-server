@@ -13,7 +13,7 @@ import (
 )
 
 func main() {
-	// Instantiate repository to open the Redis connection and create the Cloudant client
+	// Instantiate repository
 	repository, err := repository.New()
 	if err != nil {
 		log.Fatal(context.Background(), "Can not instantiate repository package, error: %v", err)
@@ -31,10 +31,21 @@ func main() {
 
 	s.AddTool(
 		mcp.NewTool("execute_query",
-			mcp.WithDescription("Demonstrate secure database operations via MCP"),
+			mcp.WithDescription("Execute SQL SELECT queries with safety constraints"),
 			mcp.WithTitleAnnotation("Execute DB Query"),
 			mcp.WithString("query", mcp.Description("DB query")),
 			mcp.WithInputSchema[types.QueryRequest](),
+			mcp.WithOutputSchema[types.QueryResponse](),
+		),
+		mcp.NewStructuredToolHandler(qh.ExecuteQuery),
+	)
+
+	s.AddTool(
+		mcp.NewTool("execute_prepared",
+			mcp.WithDescription("Execute prepared statements safely"),
+			mcp.WithTitleAnnotation("Execute DB Query"),
+			mcp.WithString("prepared", mcp.Description("DB query")),
+			mcp.WithInputSchema[types.PreparedRequest](),
 			mcp.WithOutputSchema[types.QueryResponse](),
 		),
 		mcp.NewStructuredToolHandler(qh.ExecuteQuery),

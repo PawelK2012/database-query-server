@@ -55,6 +55,12 @@ func TestQueryHandler_ExecuteQuery(t *testing.T) {
 		Format:   "invalid",
 	}
 
+	reqToTable := types.QueryRequest{
+		Database: "postgres",
+		Query:    "SELECT * FROM customers",
+		Format:   "table",
+	}
+
 	args := make(map[string]interface{})
 	args["databse"] = "sql"
 	args["query"] = "SELECT * FROM customers"
@@ -87,6 +93,12 @@ func TestQueryHandler_ExecuteQuery(t *testing.T) {
 		Format:   "csv",
 	}
 
+	expectedTableOutput := types.QueryResponse{
+		Query:    "SELECT * FROM customers",
+		Response: "<table><thead><tr><th>Address</th><th>City</th><th>ContactName</th><th>Country</th><th>CustomerName</th><th>PostalCode</th><th>id</th></tr></thead><tbody><tr><td>Some street in London</td><td>London</td><td>Bob mum</td><td>UK</td><td>Bob</td><td>1ld12</td><td>1</td></tr></tbody></table>",
+		Format:   "table",
+	}
+
 	tests := []struct {
 		name string
 		// repository *repository.Repository
@@ -102,6 +114,7 @@ func TestQueryHandler_ExecuteQuery(t *testing.T) {
 		{name: "Happy Flow - to CSV export with different Postgres types", req: request, args: reqArgsCVS, tableMock: mtblWithDifferentTypes, want: &expectedCSVOutputWithDifferentTypes, wantErr: false},
 		// {name: "Happy Flow - various types", repository: repo, req: request, args: reqArgsCVS, want: &expectedCSVOutput, wantErr: false},
 		{name: "Fail - invalid format", req: request, args: reqArgsInvalidFormat, tableMock: mtbl, want: &expectedCSVOutput, wantErr: true},
+		{name: "Happy Flow - export to HTML table", req: request, args: reqToTable, tableMock: mtbl, want: &expectedTableOutput, wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

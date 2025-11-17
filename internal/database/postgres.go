@@ -121,6 +121,10 @@ func (s *Postgress) ExecQuery(ctx context.Context, query string, params map[stri
 	return allMaps, nil
 }
 
+func (s *Postgress) ExecPrepared(ctx context.Context, statement string, params []any) ([]map[string]interface{}, error) {
+	return nil, nil
+}
+
 // GetSchema retrieves the schema information for the specified tables
 func (s *Postgress) GetSchema(ctx context.Context, tables []string) ([]map[string]interface{}, error) {
 	log.Printf("GetSchema params: %v \n", tables)

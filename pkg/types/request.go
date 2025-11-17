@@ -14,6 +14,20 @@ type QueryRequest struct {
 	Timeout    int            `json:"timeout,omitempty"`
 }
 
+type PreparedRequest struct {
+	Database      string `json:"database"`
+	StatementName string `json:"statement_name"`
+	Parameters    []any  `json:"parameters"`
+	Format        string `json:"format,omitempty"`
+}
+
+// type ConnectionStatus struct {
+// 	Database  string   `json:"database"`
+// 	Connected bool     `json:"connected"`
+// 	PoolStats PoolInfo `json:"pool_stats"`
+// 	LastPing  string   `json:"last_ping"`
+// }
+
 type QueryResponse struct {
 	Query    string `json:"query"`
 	Response string `json:"response"`
