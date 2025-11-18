@@ -108,39 +108,9 @@ func Test_pingDB(t *testing.T) {
 	assert.Equal(t, 1, 1)
 }
 
-// func Test_ExecPrepared_InsertUser(t *testing.T) {
-// 	params := []any{
-// 		1,
-// 		"Joe",
-// 		"Blogs",
-// 		"joe@example.com",
-// 		"password",
-// 		true,
-// 		time.Now(),
-// 		time.Now(),
-// 	}
-
-// 	query := "INSERT INTO public.usersTest (id,firt_name,last_name, email, password, is_admin, created_at, updated_at) VALUES ($1,$2,$3,$4,$5,$6,$7,$8) RETURNING id"
-// 	resp, err := testRepo.ExecPrepared(context.Background(), query, params)
-
-// 	var expected []map[string]interface{}
-// 	row := make(map[string]interface{})
-// 	row["message"] = "success"
-// 	row["rowsAffected"] = int64(1)
-// 	expected = append(expected, row)
-
-// 	if err != nil {
-// 		t.Errorf("InsertUser test failed %s", err)
-// 	}
-
-// 	fmt.Printf("response %v \n", resp)
-
-// 	assert.Equal(t, expected, resp)
-// }
-
 func TestPostgress_ExecPrepared(t *testing.T) {
 	insertParams := []any{
-		1,
+		3,
 		"Joe",
 		"Blogs",
 		"joe@example.com",
@@ -154,10 +124,11 @@ func TestPostgress_ExecPrepared(t *testing.T) {
 		"Joe - UPDATED",
 		"joe@example.com - UPDATED",
 		time.Now(),
-		1,
+		3,
 	}
 
 	insertStmt := "INSERT INTO public.usersTest (id,firt_name,last_name, email, password, is_admin, created_at, updated_at) VALUES ($1,$2,$3,$4,$5,$6,$7,$8) RETURNING id"
+	insertMult := "INSERT INTO public.usersTest (id,firt_name,last_name, email, password, is_admin, created_at, updated_at) VALUES (1, 'MrPawel', 'My surname', 'some@email.com', 'pass1', false, '2004-10-19 10:23:54', '2004-10-19 10:23:54'), (2, 'Mr. X', 'xXx', 'x@email.com', 'passx', false, '2004-10-19 10:23:54', '2004-10-19 10:23:54');"
 	updateStmt := "UPDATE public.usersTest SET firt_name = $1, email = $2, updated_at = $3 WHERE id = $4"
 	updateStmtErr := "UPDATE public.usersTest SET firt_name = $1, email = $2, updated_at = $3, WHERE id = $4"
 
@@ -166,6 +137,14 @@ func TestPostgress_ExecPrepared(t *testing.T) {
 	row["message"] = "success"
 	row["rowsAffected"] = int64(1)
 	expected = append(expected, row)
+
+	var expectedMultInsert []map[string]interface{}
+	row1 := make(map[string]interface{})
+	row1["message"] = "success"
+	row1["rowsAffected"] = int64(2)
+	expectedMultInsert = append(expectedMultInsert, row1)
+
+	multipleRowsParams := []any{}
 
 	tests := []struct {
 		name      string
@@ -177,6 +156,7 @@ func TestPostgress_ExecPrepared(t *testing.T) {
 		// TODO add more tests
 		{name: "Happy Flow execute_prepared - INSERT INTO public.usersTest", statement: insertStmt, params: insertParams, want: expected, wantErr: false},
 		{name: "Happy Flow execute_prepared - UPDATE public.usersTest", statement: updateStmt, params: updateParams, want: expected, wantErr: false},
+		{name: "Happy Flow execute_prepared - INSERT multiple rows", statement: insertMult, params: multipleRowsParams, want: expectedMultInsert, wantErr: false},
 		{name: "Sad Flow execute_prepared - UPDATE public.usersTest failed", statement: updateStmtErr, params: updateParams, want: expected, wantErr: true},
 	}
 	for _, tt := range tests {

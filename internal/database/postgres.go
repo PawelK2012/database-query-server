@@ -139,10 +139,6 @@ func (s *Postgress) ExecPrepared(ctx context.Context, statement string, params [
 	if err != nil {
 		return nil, err
 	}
-	if rows != 1 {
-		log.Fatalf("expected to affect 1 row, affected %d", rows)
-		return nil, err
-	}
 
 	defaultResp := make(map[string]interface{})
 	defaultResp["message"] = "success"
