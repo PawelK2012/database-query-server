@@ -108,13 +108,14 @@ func TestQueryHandler_ExecuteQuery(t *testing.T) {
 		want      *types.QueryResponse
 		wantErr   bool
 	}{
-		{name: "Happy Flow", req: request, args: reqArgs, tableMock: mtbl, want: &expected, wantErr: false},
+		{name: "Happy Flow execute_query", req: request, args: reqArgs, tableMock: mtbl, want: &expected, wantErr: false},
 		// {name: "Sad Flow", repository: repo, req: request, args: reqArgs, want: &expected, wantErr: true},
-		{name: "Happy Flow - to CSV export", req: request, args: reqArgsCVS, tableMock: mtbl, want: &expectedCSVOutput, wantErr: false},
-		{name: "Happy Flow - to CSV export with different Postgres types", req: request, args: reqArgsCVS, tableMock: mtblWithDifferentTypes, want: &expectedCSVOutputWithDifferentTypes, wantErr: false},
+		{name: "Happy Flow execute_query - to CSV export", req: request, args: reqArgsCVS, tableMock: mtbl, want: &expectedCSVOutput, wantErr: false},
+		{name: "Happy Flow execute_query - to CSV export with different Postgres types", req: request, args: reqArgsCVS, tableMock: mtblWithDifferentTypes, want: &expectedCSVOutputWithDifferentTypes, wantErr: false},
 		// {name: "Happy Flow - various types", repository: repo, req: request, args: reqArgsCVS, want: &expectedCSVOutput, wantErr: false},
-		{name: "Fail - invalid format", req: request, args: reqArgsInvalidFormat, tableMock: mtbl, want: &expectedCSVOutput, wantErr: true},
-		{name: "Happy Flow - export to HTML table", req: request, args: reqToTable, tableMock: mtbl, want: &expectedTableOutput, wantErr: false},
+		{name: "Fail execute_query - invalid format", req: request, args: reqArgsInvalidFormat, tableMock: mtbl, want: &expectedCSVOutput, wantErr: true},
+		{name: "Happy Flow execute_query - export to HTML table", req: request, args: reqToTable, tableMock: mtbl, want: &expectedTableOutput, wantErr: false},
+		// Add execute_query test
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
