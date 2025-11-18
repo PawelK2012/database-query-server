@@ -130,20 +130,30 @@ func (s *Postgress) ExecPrepared(ctx context.Context, statement string, params [
 		return nil, err
 	}
 	defer stmt.Close()
-	rows, err := stmt.QueryContext(ctx, params...)
+
+	result, err := stmt.ExecContext(ctx, params...)
 	if err != nil {
 		return nil, err
 	}
-	columns, err := rows.Columns()
+	rows, err := result.RowsAffected()
 	if err != nil {
+		return nil, err
+	}
+	// id, err := result.LastInsertId()
+	// if err != nil {
+	// 	return nil, err
+	// }
+	if rows != 1 {
+		log.Fatalf("expected to affect 1 row, affected %d", rows)
 		return nil, err
 	}
 
-	defer rows.Close()
-	allMaps, err = s.itterateRows(rows, len(columns), columns)
-	if err != nil {
-		return nil, err
-	}
+	defaultResp := make(map[string]interface{})
+	defaultResp["message"] = "success"
+	// defaultResp["id"] = id
+	defaultResp["rowsAffected"] = rows
+	allMaps = append(allMaps, defaultResp)
+	fmt.Printf("-allMaps ExecPrepared %+v \n", allMaps)
 	return allMaps, nil
 }
 
