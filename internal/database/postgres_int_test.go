@@ -128,7 +128,7 @@ func TestPostgress_ExecPrepared(t *testing.T) {
 	}
 
 	insertStmt := "INSERT INTO public.usersTest (id,firt_name,last_name, email, password, is_admin, created_at, updated_at) VALUES ($1,$2,$3,$4,$5,$6,$7,$8) RETURNING id"
-	insertMult := "INSERT INTO public.usersTest (id,firt_name,last_name, email, password, is_admin, created_at, updated_at) VALUES (1, 'MrPawel', 'My surname', 'some@email.com', 'pass1', false, '2004-10-19 10:23:54', '2004-10-19 10:23:54'), (2, 'Mr. X', 'xXx', 'x@email.com', 'passx', false, '2004-10-19 10:23:54', '2004-10-19 10:23:54');"
+	insertMult := "INSERT INTO public.usersTest (id,firt_name,last_name, email, password, is_admin, created_at, updated_at) VALUES (4, 'MrPawel', 'My surname', 'some@email.com', 'pass1', false, '2004-10-19 10:23:54', '2004-10-19 10:23:54'), (5, 'Mr. X', 'xXx', 'x@email.com', 'passx', false, '2004-10-19 10:23:54', '2004-10-19 10:23:54');"
 	updateStmt := "UPDATE public.usersTest SET firt_name = $1, email = $2, updated_at = $3 WHERE id = $4"
 	updateStmtErr := "UPDATE public.usersTest SET firt_name = $1, email = $2, updated_at = $3, WHERE id = $4"
 
@@ -172,6 +172,78 @@ func TestPostgress_ExecPrepared(t *testing.T) {
 				t.Fatal("ExecPrepared() succeeded unexpectedly")
 			}
 
+			if true {
+				assert.EqualValues(t, tt.want, got)
+			}
+		})
+	}
+}
+
+func TestPostgress_ExecQuery(t *testing.T) {
+	paramsEmpty := map[string]any{}
+	params := map[string]any{}
+	params["id"] = 1
+	query := "SELECT id, firt_name, last_name FROM public.usersTest;"
+	querySelectById := "SELECT id, firt_name, last_name FROM public.usersTest WHERE id = $1"
+
+	var expectedSelectById []map[string]interface{}
+	row := make(map[string]interface{})
+	row["firt_name"] = "TestUser1"
+	row["id"] = int64(1)
+	row["last_name"] = "Test surname"
+	expectedSelectById = append(expectedSelectById, row)
+
+	var expectedSelectAll []map[string]interface{}
+	row1 := make(map[string]interface{})
+	row1["firt_name"] = "TestUser1"
+	row1["id"] = int64(1)
+	row1["last_name"] = "Test surname"
+
+	row2 := make(map[string]interface{})
+	row2["firt_name"] = "TestUser2"
+	row2["id"] = int64(2)
+	row2["last_name"] = "Surname 2"
+
+	row3 := make(map[string]interface{})
+	row3["firt_name"] = "Joe - UPDATED"
+	row3["id"] = int64(3)
+	row3["last_name"] = "Blogs"
+
+	row4 := make(map[string]interface{})
+	row4["firt_name"] = "MrPawel"
+	row4["id"] = int64(4)
+	row4["last_name"] = "My surname"
+
+	row5 := make(map[string]interface{})
+	row5["firt_name"] = "Mr. X"
+	row5["id"] = int64(5)
+	row5["last_name"] = "xXx"
+	expectedSelectAll = append(expectedSelectAll, row1, row2, row3, row4, row5)
+
+	tests := []struct {
+		name string // description of this test case
+		// Named input parameters for target function.
+		query   string
+		params  map[string]any
+		want    []map[string]interface{}
+		wantErr bool
+	}{
+		// TODO keep an eye on SELECT * FROM test, as it could cause issues
+		{name: "Happy Flow execute_query - SELECT * FROM public.usersTest", query: query, params: paramsEmpty, want: expectedSelectAll, wantErr: false},
+		{name: "Happy Flow execute_query - SELECT by id", query: querySelectById, params: params, want: expectedSelectById, wantErr: false},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, gotErr := testRepo.ExecQuery(context.Background(), tt.query, tt.params)
+			if gotErr != nil {
+				if !tt.wantErr {
+					t.Errorf("ExecQuery() failed: %v", gotErr)
+				}
+				return
+			}
+			if tt.wantErr {
+				t.Fatal("ExecQuery() succeeded unexpectedly")
+			}
 			if true {
 				assert.EqualValues(t, tt.want, got)
 			}

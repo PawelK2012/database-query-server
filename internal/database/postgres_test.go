@@ -143,10 +143,6 @@ func TestExecPrepared_Happy_Path(t *testing.T) {
 	ctx := context.Background()
 	query := "SELECT id, name FROM users WHERE id=$1"
 
-	// expected rows to return
-	// rows := sqlmock.NewRows([]string{"id", "name"}).
-	// AddRow(1, "Bob")
-
 	resultMock := sqlmock.NewResult(int64(1), int64(1))
 
 	var expected []map[string]interface{}
