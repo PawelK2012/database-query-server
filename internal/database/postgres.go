@@ -139,10 +139,6 @@ func (s *Postgress) ExecPrepared(ctx context.Context, statement string, params [
 	if err != nil {
 		return nil, err
 	}
-	// id, err := result.LastInsertId()
-	// if err != nil {
-	// 	return nil, err
-	// }
 	if rows != 1 {
 		log.Fatalf("expected to affect 1 row, affected %d", rows)
 		return nil, err
@@ -150,10 +146,9 @@ func (s *Postgress) ExecPrepared(ctx context.Context, statement string, params [
 
 	defaultResp := make(map[string]interface{})
 	defaultResp["message"] = "success"
-	// defaultResp["id"] = id
 	defaultResp["rowsAffected"] = rows
 	allMaps = append(allMaps, defaultResp)
-	fmt.Printf("-allMaps ExecPrepared %+v \n", allMaps)
+
 	return allMaps, nil
 }
 
