@@ -221,8 +221,7 @@ func TestPostgress_ExecQuery(t *testing.T) {
 	expectedSelectAll = append(expectedSelectAll, row1, row2, row3, row4, row5)
 
 	tests := []struct {
-		name string // description of this test case
-		// Named input parameters for target function.
+		name    string
 		query   string
 		params  map[string]any
 		want    []map[string]interface{}
