@@ -228,6 +228,7 @@ func TestPostgress_ExecQuery(t *testing.T) {
 		wantErr bool
 	}{
 		// TODO keep an eye on SELECT * FROM test, as it could cause issues
+		// This test also depends on the two users inserted in the ExecPrepared test case.
 		{name: "Happy Flow execute_query - SELECT * FROM public.usersTest", query: query, params: paramsEmpty, want: expectedSelectAll, wantErr: false},
 		{name: "Happy Flow execute_query - SELECT by id", query: querySelectById, params: params, want: expectedSelectById, wantErr: false},
 	}
