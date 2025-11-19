@@ -83,34 +83,9 @@ func (s *Postgress) ExecQuery(ctx context.Context, query string, params map[stri
 
 	} else {
 		// The system handles dynamic queries, so the results are scanned into a slice of pointers to interface{} variables.
-		for rows.Next() {
-			values := make([]interface{}, len(columns))
-			pointers := make([]interface{}, len(columns))
-			for i := range values {
-				pointers[i] = &values[i]
-			}
-			if err := rows.Scan(pointers...); err != nil {
-				// Check for a scan error.
-				// Query rows will be closed with defer.
-				return nil, err
-			}
-			resultMap := make(map[string]interface{})
-			for i, val := range values {
-				resultMap[columns[i]] = val
-			}
 
-			allMaps = append(allMaps, resultMap)
-		}
-		// If the database is being written to ensure to check for Close
-		// errors that may be returned from the driver. The query may
-		// encounter an auto-commit error and be forced to rollback changes.
-		err = rows.Close()
+		allMaps, err = s.itterateRows(rows, len(columns), columns)
 		if err != nil {
-			return nil, err
-		}
-
-		// Rows.Err will report the last error encountered by Rows.Scan.
-		if err := rows.Err(); err != nil {
 			return nil, err
 		}
 	}
@@ -211,37 +186,37 @@ func (s *Postgress) GetSchema(ctx context.Context, tables []string) ([]map[strin
 }
 
 // TODO refactor other func to use this
-// func (s *Postgress) itterateRows(rows *sql.Rows, sliceSize int, columns []string) ([]map[string]interface{}, error) {
-// 	// The system handles dynamic queries, so the results are scanned into a slice of pointers to interface{} variables.
-// 	var allMaps []map[string]interface{}
-// 	for rows.Next() {
-// 		values := make([]interface{}, sliceSize)
-// 		pointers := make([]interface{}, sliceSize)
-// 		for i := range values {
-// 			pointers[i] = &values[i]
-// 		}
-// 		if err := rows.Scan(pointers...); err != nil {
-// 			// Check for a scan error.
-// 			// Query rows will be closed with defer.
-// 			return nil, err
-// 		}
-// 		resultMap := make(map[string]interface{})
-// 		for i, val := range values {
-// 			resultMap[columns[i]] = val
-// 		}
-// 		allMaps = append(allMaps, resultMap)
-// 	}
-// 	// If the database is being written to ensure to check for Close
-// 	// errors that may be returned from the driver. The query may
-// 	// encounter an auto-commit error and be forced to rollback changes.
-// 	err := rows.Close()
-// 	if err != nil {
-// 		return nil, err
-// 	}
+func (s *Postgress) itterateRows(rows *sql.Rows, sliceSize int, columns []string) ([]map[string]interface{}, error) {
+	// The system handles dynamic queries, so the results are scanned into a slice of pointers to interface{} variables.
+	var allMaps []map[string]interface{}
+	for rows.Next() {
+		values := make([]interface{}, sliceSize)
+		pointers := make([]interface{}, sliceSize)
+		for i := range values {
+			pointers[i] = &values[i]
+		}
+		if err := rows.Scan(pointers...); err != nil {
+			// Check for a scan error.
+			// Query rows will be closed with defer.
+			return nil, err
+		}
+		resultMap := make(map[string]interface{})
+		for i, val := range values {
+			resultMap[columns[i]] = val
+		}
+		allMaps = append(allMaps, resultMap)
+	}
+	// If the database is being written to ensure to check for Close
+	// errors that may be returned from the driver. The query may
+	// encounter an auto-commit error and be forced to rollback changes.
+	err := rows.Close()
+	if err != nil {
+		return nil, err
+	}
 
-// 	// Rows.Err will report the last error encountered by Rows.Scan.
-// 	if err := rows.Err(); err != nil {
-// 		return nil, err
-// 	}
-// 	return allMaps, nil
-// }
+	// Rows.Err will report the last error encountered by Rows.Scan.
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return allMaps, nil
+}

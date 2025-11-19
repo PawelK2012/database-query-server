@@ -104,8 +104,6 @@ func Test_pingDB(t *testing.T) {
 	if err != nil {
 		t.Error("can't ping DB")
 	}
-
-	assert.Equal(t, 1, 1)
 }
 
 func TestPostgress_ExecPrepared(t *testing.T) {
@@ -185,6 +183,7 @@ func TestPostgress_ExecQuery(t *testing.T) {
 	params["id"] = 1
 	query := "SELECT id, firt_name, last_name FROM public.usersTest;"
 	querySelectById := "SELECT id, firt_name, last_name FROM public.usersTest WHERE id = $1"
+	queryErr := "SELECT id, firt_name, last_name FROM public.UNDEFINED WHERE id = $1"
 
 	var expectedSelectById []map[string]interface{}
 	row := make(map[string]interface{})
@@ -231,6 +230,7 @@ func TestPostgress_ExecQuery(t *testing.T) {
 		// This test also depends on the two users inserted in the ExecPrepared test case.
 		{name: "Happy Flow execute_query - SELECT * FROM public.usersTest", query: query, params: paramsEmpty, want: expectedSelectAll, wantErr: false},
 		{name: "Happy Flow execute_query - SELECT by id", query: querySelectById, params: params, want: expectedSelectById, wantErr: false},
+		{name: "SAD Flow execute_query - SELECT by id", query: queryErr, params: params, want: expectedSelectById, wantErr: true},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -243,6 +243,88 @@ func TestPostgress_ExecQuery(t *testing.T) {
 			}
 			if tt.wantErr {
 				t.Fatal("ExecQuery() succeeded unexpectedly")
+			}
+			if true {
+				assert.EqualValues(t, tt.want, got)
+			}
+		})
+	}
+}
+
+func TestPostgress_GetSchema(t *testing.T) {
+	tables := []string{
+		"userstest",
+	}
+
+	tablesDoesntExist := []string{
+		"userstestXXXX",
+	}
+
+	var expectedEmpty []map[string]interface{}
+
+	var expected []map[string]interface{}
+	row := make(map[string]interface{})
+	row["column_name"] = "id"
+	row["data_type"] = "integer"
+	row["character_maximum_length"] = interface{}(nil)
+
+	row1 := make(map[string]interface{})
+	row1["column_name"] = "firt_name"
+	row1["data_type"] = "character varying"
+	row1["character_maximum_length"] = int64(255)
+
+	row2 := make(map[string]interface{})
+	row2["column_name"] = "last_name"
+	row2["data_type"] = "character varying"
+	row2["character_maximum_length"] = int64(255)
+
+	row3 := make(map[string]interface{})
+	row3["column_name"] = "email"
+	row3["data_type"] = "character varying"
+	row3["character_maximum_length"] = int64(255)
+
+	row4 := make(map[string]interface{})
+	row4["column_name"] = "password"
+	row4["data_type"] = "character varying"
+	row4["character_maximum_length"] = int64(60)
+
+	row5 := make(map[string]interface{})
+	row5["column_name"] = "is_admin"
+	row5["data_type"] = "boolean"
+	row5["character_maximum_length"] = interface{}(nil)
+
+	row6 := make(map[string]interface{})
+	row6["column_name"] = "created_at"
+	row6["data_type"] = "timestamp without time zone"
+	row6["character_maximum_length"] = interface{}(nil)
+
+	row7 := make(map[string]interface{})
+	row7["column_name"] = "updated_at"
+	row7["data_type"] = "timestamp without time zone"
+	row7["character_maximum_length"] = interface{}(nil)
+	expected = append(expected, row, row1, row2, row3, row4, row5, row6, row7)
+
+	tests := []struct {
+		name    string
+		tables  []string
+		want    []map[string]interface{}
+		wantErr bool
+	}{
+		{name: "Happy Flow get_schema - GET userstest SCHEMA", tables: tables, want: expected, wantErr: false},
+		{name: "Happy Flow get_schema - GET schema for table that doesn't exist", tables: tablesDoesntExist, want: expectedEmpty, wantErr: false},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+
+			got, gotErr := testRepo.GetSchema(context.Background(), tt.tables)
+			if gotErr != nil {
+				if !tt.wantErr {
+					t.Errorf("GetSchema() failed: %v", gotErr)
+				}
+				return
+			}
+			if tt.wantErr {
+				t.Fatal("GetSchema() succeeded unexpectedly")
 			}
 			if true {
 				assert.EqualValues(t, tt.want, got)
