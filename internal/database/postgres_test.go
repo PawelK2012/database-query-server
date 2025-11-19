@@ -3,7 +3,6 @@ package database_test
 import (
 	"context"
 	"fmt"
-	"log"
 	"regexp"
 	"testing"
 
@@ -55,7 +54,6 @@ func TestExecQuery_Happy_Path_Select_All(t *testing.T) {
 		t.Errorf("ExecQuery() failed: %v", err)
 		return
 	}
-	log.Printf("resultsssss %v", result)
 
 	// we make sure that all expectations were met
 	if err := mock.ExpectationsWereMet(); err != nil {
@@ -145,22 +143,20 @@ func TestExecPrepared_Happy_Path(t *testing.T) {
 	ctx := context.Background()
 	query := "SELECT id, name FROM users WHERE id=$1"
 
-	// expected rows to return
-	rows := sqlmock.NewRows([]string{"id", "name"}).
-		AddRow(1, "Bob")
+	resultMock := sqlmock.NewResult(int64(1), int64(1))
 
 	var expected []map[string]interface{}
 	row := make(map[string]interface{})
-	row["id"] = int64(1)
-	row["name"] = "Bob"
-
+	row["message"] = "success"
+	row["rowsAffected"] = int64(1)
 	expected = append(expected, row)
 
 	params := []any{
 		1,
 	}
 
-	mock.ExpectPrepare(regexp.QuoteMeta(query)).ExpectQuery().WithArgs(params[0]).WillReturnRows(rows)
+	// mock.ExpectPrepare(regexp.QuoteMeta(query)).ExpectQuery().WithArgs(params[0]).WillReturnRows(rows)
+	mock.ExpectPrepare(regexp.QuoteMeta(query)).ExpectExec().WithArgs(params[0]).WillReturnResult(resultMock)
 
 	result, err := pg.ExecPrepared(ctx, query, params)
 	if err != nil {

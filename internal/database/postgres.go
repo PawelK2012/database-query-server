@@ -55,7 +55,6 @@ func (s *Postgress) ExecQuery(ctx context.Context, query string, params map[stri
 		var args []any
 
 		for k := range params {
-			fmt.Printf("key[%s] value[%s]\n", k, params[k])
 			args = append(args, params[k])
 		}
 		rows, err = stmt.QueryContext(ctx, args...)
@@ -68,13 +67,12 @@ func (s *Postgress) ExecQuery(ctx context.Context, query string, params map[stri
 			return nil, err
 		}
 	}
+	defer rows.Close()
 
 	columns, err := rows.Columns()
 	if err != nil {
 		return nil, err
 	}
-
-	defer rows.Close()
 
 	if len(columns) == 0 {
 		// Default response for operations that don't return rows
@@ -85,33 +83,9 @@ func (s *Postgress) ExecQuery(ctx context.Context, query string, params map[stri
 
 	} else {
 		// The system handles dynamic queries, so the results are scanned into a slice of pointers to interface{} variables.
-		for rows.Next() {
-			values := make([]interface{}, len(columns))
-			pointers := make([]interface{}, len(columns))
-			for i := range values {
-				pointers[i] = &values[i]
-			}
-			if err := rows.Scan(pointers...); err != nil {
-				// Check for a scan error.
-				// Query rows will be closed with defer.
-				return nil, err
-			}
-			resultMap := make(map[string]interface{})
-			for i, val := range values {
-				resultMap[columns[i]] = val
-			}
-			allMaps = append(allMaps, resultMap)
-		}
-		// If the database is being written to ensure to check for Close
-		// errors that may be returned from the driver. The query may
-		// encounter an auto-commit error and be forced to rollback changes.
-		err = rows.Close()
-		if err != nil {
-			return nil, err
-		}
 
-		// Rows.Err will report the last error encountered by Rows.Scan.
-		if err := rows.Err(); err != nil {
+		allMaps, err = s.itterateRows(rows, len(columns), columns)
+		if err != nil {
 			return nil, err
 		}
 	}
@@ -130,20 +104,21 @@ func (s *Postgress) ExecPrepared(ctx context.Context, statement string, params [
 		return nil, err
 	}
 	defer stmt.Close()
-	rows, err := stmt.QueryContext(ctx, params...)
+
+	result, err := stmt.ExecContext(ctx, params...)
 	if err != nil {
 		return nil, err
 	}
-	columns, err := rows.Columns()
+	rows, err := result.RowsAffected()
 	if err != nil {
 		return nil, err
 	}
 
-	defer rows.Close()
-	allMaps, err = s.itterateRows(rows, len(columns), columns)
-	if err != nil {
-		return nil, err
-	}
+	defaultResp := make(map[string]interface{})
+	defaultResp["message"] = "success"
+	defaultResp["rowsAffected"] = rows
+	allMaps = append(allMaps, defaultResp)
+
 	return allMaps, nil
 }
 
