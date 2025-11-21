@@ -132,6 +132,22 @@ echo '{
   }
 }' 
 ```
+### Get ConnectionStatus
+
+```json
+echo '{
+  "jsonrpc": "2.0",
+  "id": 1,
+  "method": "tools/call", 
+  "params": {
+    "name": "get_connection_status",
+    "arguments": {
+      "database": "primary"//name of the DB you want to retrieve stats for
+    }
+  }
+}' 
+```
+
 
 ### Example Usage
 
