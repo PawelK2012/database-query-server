@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"html"
+	"log"
 	"reflect"
 	"sort"
 	"strconv"
@@ -18,7 +19,7 @@ import (
 
 // GetSchema retrieves the schema information for the specified tables and formats response for MCP client
 func (qh *QueryHandler) GetSchema(ctx context.Context, req mcp.CallToolRequest, args types.SchemaRequest) (*types.QueryResponse, error) {
-	fmt.Printf("execute GetSchema for tables: %v deatiled: %v", args.Tables, args.Detailed)
+	log.Printf("execute GetSchema for tables: %v deatiled: %v", args.Tables, args.Detailed)
 	res, err := qh.repository.Postgress.GetSchema(ctx, args.Tables)
 	if err != nil {
 		return nil, fmt.Errorf("get_schema for table %v failed %v", args.Tables, err)
@@ -37,15 +38,21 @@ func (qh *QueryHandler) GetSchema(ctx context.Context, req mcp.CallToolRequest, 
 	return response, nil
 }
 
+func (qh *QueryHandler) GetStatus(ctx context.Context, req mcp.CallToolRequest, args types.ConnectionStatus) (*types.ConnectionStatusResp, error) {
+	log.Printf("execute GetStatus for DB: %v ", args.Database)
+	return nil, nil
+}
+
 // ExecuteQuery executes a SQL query and returns the results in the specified format
 func (qh *QueryHandler) ExecuteQuery(ctx context.Context, req mcp.CallToolRequest, args types.QueryRequest) (*types.QueryResponse, error) {
+	log.Printf("execute_query handler got query %v with format %v", args.Query, args.Format)
+
 	// Input is already validated and bound to SearchRequest struct
 	limit := args.Limit
 	if limit <= 0 {
 		limit = 10
 	}
 
-	fmt.Printf("execute_query handler got query %v with format %v", args.Query, args.Format)
 	qResp, err := qh.repository.Postgress.ExecQuery(ctx, args.Query, args.Parameters)
 	if err != nil {
 		return nil, fmt.Errorf("execute_query %v failed %v", args.Query, err)
@@ -86,7 +93,7 @@ func (qh *QueryHandler) ExecutePrepared(ctx context.Context, req mcp.CallToolReq
 	// 	limit = 10
 	// }
 
-	fmt.Printf("execute_prepared handler got query %v with format %v", args.StatementName, args.Format)
+	log.Printf("execute_prepared handler got query %v with format %v", args.StatementName, args.Format)
 	qResp, err := qh.repository.Postgress.ExecPrepared(ctx, args.StatementName, args.Parameters)
 	if err != nil {
 		return nil, fmt.Errorf("execute_prepared %v failed %v", args.StatementName, err)
