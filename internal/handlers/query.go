@@ -125,12 +125,6 @@ func (qh *QueryHandler) ExecuteQuery(ctx context.Context, req mcp.CallToolReques
 }
 
 func (qh *QueryHandler) ExecutePrepared(ctx context.Context, req mcp.CallToolRequest, args types.PreparedRequest) (*types.QueryResponse, error) {
-	// Input is already validated and bound to SearchRequest struct
-	// limit := args.Limit
-	// if limit <= 0 {
-	// 	limit = 10
-	// }
-
 	log.Printf("execute_prepared handler got query %v with format %v", args.StatementName, args.Format)
 	qResp, err := qh.repository.Postgress.ExecPrepared(ctx, args.StatementName, args.Parameters)
 	if err != nil {

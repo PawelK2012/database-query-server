@@ -28,7 +28,6 @@ type ConnectionStatus struct {
 type ConnectionStatusResp struct {
 	Database  string `json:"database"`
 	Connected bool   `json:"connected,omitempty"`
-	// PoolStats PoolInfo `json:"pool_stats"`
 	PoolStats int    `json:"pool_stats,omitempty"`
 	LastPing  string `json:"last_ping,omitempty"`
 }
