@@ -70,7 +70,7 @@ func main() {
 			mcp.WithInputSchema[types.ConnectionStatus](),
 			mcp.WithOutputSchema[types.ConnectionStatusResp](),
 		),
-		mcp.NewStructuredToolHandler(qh.GetSchema),
+		mcp.NewStructuredToolHandler(qh.GetStatus),
 	)
 
 	// Start StreamableHTTP server

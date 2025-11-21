@@ -69,6 +69,8 @@ func (s *Postgress) ExecQuery(ctx context.Context, query string, params map[stri
 	}
 	defer rows.Close()
 
+	log.Printf("DDDDDDBBBBBB  qqqqqq %v", rows)
+
 	columns, err := rows.Columns()
 	if err != nil {
 		return nil, err
@@ -109,6 +111,7 @@ func (s *Postgress) ExecPrepared(ctx context.Context, statement string, params [
 	if err != nil {
 		return nil, err
 	}
+	log.Printf("DDDDDDBBBBBB %v", result)
 	rows, err := result.RowsAffected()
 	if err != nil {
 		return nil, err

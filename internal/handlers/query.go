@@ -12,6 +12,7 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+	"time"
 
 	"exmple.com/database-query-server/pkg/types"
 	"github.com/mark3labs/mcp-go/mcp"
@@ -38,9 +39,46 @@ func (qh *QueryHandler) GetSchema(ctx context.Context, req mcp.CallToolRequest, 
 	return response, nil
 }
 
+// GetStatus returns the database status, the number of connections, and the timestamp of the last DB access
 func (qh *QueryHandler) GetStatus(ctx context.Context, req mcp.CallToolRequest, args types.ConnectionStatus) (*types.ConnectionStatusResp, error) {
 	log.Printf("execute GetStatus for DB: %v ", args.Database)
-	return nil, nil
+	par := make(map[string]any)
+	par["1"] = args.Database
+	query := "SELECT numbackends FROM pg_stat_database WHERE datname = $1"
+
+	resp, err := qh.repository.Postgress.ExecQuery(ctx, query, par)
+	if err != nil {
+		return nil, err
+	}
+	//casting to int64
+	i64, ok := resp[0]["numbackends"].(int64)
+	if !ok {
+		return nil, fmt.Errorf("failed converting connection pool status")
+	}
+
+	parLastPing := make(map[string]any)
+	parLastPing["1"] = args.Database
+
+	queryLastPing := "SELECT state_change FROM pg_stat_activity WHERE datname= $1 ORDER BY state_change DESC"
+	respLastPing, err := qh.repository.Postgress.ExecQuery(ctx, queryLastPing, parLastPing)
+	if err != nil {
+		return nil, err
+	}
+
+	//casting to time
+	st, ok := respLastPing[0]["state_change"].(time.Time)
+	if !ok {
+		return nil, fmt.Errorf("failed converting last ping status")
+	}
+
+	statResp := &types.ConnectionStatusResp{
+		Database:  args.Database,
+		Connected: true, // if the DB isn’t up, this function will return an error before reaching this point
+		PoolStats: int(i64),
+		LastPing:  st.Format(time.RFC3339),
+	}
+
+	return statResp, nil
 }
 
 // ExecuteQuery executes a SQL query and returns the results in the specified format
