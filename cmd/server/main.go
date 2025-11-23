@@ -66,7 +66,7 @@ func main() {
 		mcp.NewTool("get_connection_status",
 			mcp.WithDescription("Check database connection health and pool statistics"),
 			mcp.WithTitleAnnotation("Execute get_connection_status operations"),
-			mcp.WithString("schema", mcp.Description("DB health")),
+			mcp.WithString("schema", mcp.Description("DB connection health and pool statistics")),
 			mcp.WithInputSchema[types.ConnectionStatus](),
 			mcp.WithOutputSchema[types.ConnectionStatusResp](),
 		),

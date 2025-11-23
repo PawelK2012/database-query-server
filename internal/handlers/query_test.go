@@ -2,7 +2,9 @@ package handlers_test
 
 import (
 	"context"
+	"fmt"
 	"testing"
+	"time"
 
 	"exmple.com/database-query-server/internal/database"
 	"exmple.com/database-query-server/internal/handlers"
@@ -183,7 +185,7 @@ func TestQueryHandler_GetSchema(t *testing.T) {
 		want       *types.QueryResponse
 		wantErr    bool
 	}{
-		{name: "Happy Flow", req: request, args: reqArgs, tableMock: mtbl, want: &expected, wantErr: false},
+		{name: "Happy Flow - GetSchema", req: request, args: reqArgs, tableMock: mtbl, want: &expected, wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -199,6 +201,87 @@ func TestQueryHandler_GetSchema(t *testing.T) {
 			}
 			if tt.wantErr {
 				t.Fatal("GetSchema() succeeded unexpectedly")
+			}
+			if true {
+				assert.EqualValues(t, tt.want, got)
+			}
+		})
+	}
+}
+
+func TestQueryHandler_GetStatus(t *testing.T) {
+	timNow := time.Now()
+	var mtbl []map[string]interface{}
+	row2 := make(map[string]interface{})
+	row2["numbackends"] = int64(20)
+	row2["state_change"] = timNow
+	row2["character_maximum_length"] = int64(200)
+	mtbl = append(mtbl, row2)
+
+	reqArgs := types.ConnectionStatus{
+		Database: "mcp-db",
+	}
+
+	request := mcp.CallToolRequest{
+		Params: mcp.CallToolParams{
+			Name:      "get_connection_status",
+			Arguments: reqArgs,
+		},
+	}
+
+	expected := types.ConnectionStatusResp{
+		Database:  "mcp-db",
+		Connected: true,
+		PoolStats: 20,
+		LastPing:  timNow.Format(time.RFC3339),
+	}
+
+	reqArgsEmpty := types.ConnectionStatus{
+		Database: "",
+	}
+
+	requestFail := mcp.CallToolRequest{
+		Params: mcp.CallToolParams{
+			Name:      "get_connection_status",
+			Arguments: reqArgsEmpty,
+		},
+	}
+
+	var mtbl1 []map[string]interface{}
+	rowErr := make(map[string]interface{})
+	rowErr["numbackends"] = 200
+	rowErr["state_change"] = timNow
+	rowErr["character_maximum_length"] = int64(200)
+	mtbl1 = append(mtbl1, rowErr)
+
+	expectedErr := fmt.Errorf("failed converting connection pool status")
+
+	tests := []struct {
+		name       string
+		repository *repository.Repository
+		tableMock  []map[string]interface{}
+		req        mcp.CallToolRequest
+		args       types.ConnectionStatus
+		want       *types.ConnectionStatusResp
+		wantErr    bool
+	}{
+		{name: "Happy Flow - GetStatus", req: request, args: reqArgs, tableMock: mtbl, want: &expected, wantErr: false},
+		{name: "Sad Flow - GetStatus connection pool status error", req: requestFail, args: reqArgsEmpty, tableMock: mtbl1, want: &expected, wantErr: false},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			pg, _ := database.NewPostgresClientMock(tt.tableMock, false)
+			repo := &repository.Repository{Postgress: pg}
+			qh := handlers.NewQueryHandler(repo)
+			got, gotErr := qh.GetStatus(context.Background(), tt.req, tt.args)
+			if gotErr != nil {
+				if !tt.wantErr {
+					assert.EqualValues(t, expectedErr, gotErr)
+				}
+				return
+			}
+			if tt.wantErr {
+				t.Fatal("GetStatus() succeeded unexpectedly")
 			}
 			if true {
 				assert.EqualValues(t, tt.want, got)
