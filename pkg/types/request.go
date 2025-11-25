@@ -21,12 +21,16 @@ type PreparedRequest struct {
 	Format        string `json:"format,omitempty"`
 }
 
-// type ConnectionStatus struct {
-// 	Database  string   `json:"database"`
-// 	Connected bool     `json:"connected"`
-// 	PoolStats PoolInfo `json:"pool_stats"`
-// 	LastPing  string   `json:"last_ping"`
-// }
+type ConnectionStatus struct {
+	Database string `json:"database"`
+}
+
+type ConnectionStatusResp struct {
+	Database  string `json:"database"`
+	Connected bool   `json:"connected,omitempty"`
+	PoolStats int    `json:"pool_stats,omitempty"`
+	LastPing  string `json:"last_ping,omitempty"`
+}
 
 type QueryResponse struct {
 	Query    string `json:"query"`

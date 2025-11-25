@@ -11,6 +11,7 @@ Sample MCP Server - Go (database-query-server) - built according to these [speci
 
 1. Simple start with `docker compose up` - Related [documentation](https://github.com/docker/awesome-compose/tree/master/postgresql-pgadmin) 
 2. Start MPC server with command `make run`
+3. You can use the Go [MCP-client](https://github.com/PawelK2012/mcp-client), which includes `tools/call` examples 
 
 ## Configuration
 
@@ -132,6 +133,22 @@ echo '{
   }
 }' 
 ```
+### Get ConnectionStatus
+
+```json
+echo '{
+  "jsonrpc": "2.0",
+  "id": 1,
+  "method": "tools/call", 
+  "params": {
+    "name": "get_connection_status",
+    "arguments": {
+      "database": "primary"//name of the DB you want to retrieve stats for
+    }
+  }
+}' 
+```
+
 
 ### Example Usage
 

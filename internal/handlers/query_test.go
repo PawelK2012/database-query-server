@@ -2,7 +2,9 @@ package handlers_test
 
 import (
 	"context"
+	"fmt"
 	"testing"
+	"time"
 
 	"exmple.com/database-query-server/internal/database"
 	"exmple.com/database-query-server/internal/handlers"
@@ -120,7 +122,6 @@ func TestQueryHandler_ExecuteQuery(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			pg, _ := database.NewPostgresClientMock(tt.tableMock, false)
-
 			repo := &repository.Repository{Postgress: pg}
 			qh := handlers.NewQueryHandler(repo)
 			got, gotErr := qh.ExecuteQuery(context.Background(), tt.req, tt.args)
@@ -183,7 +184,7 @@ func TestQueryHandler_GetSchema(t *testing.T) {
 		want       *types.QueryResponse
 		wantErr    bool
 	}{
-		{name: "Happy Flow", req: request, args: reqArgs, tableMock: mtbl, want: &expected, wantErr: false},
+		{name: "Happy Flow - GetSchema", req: request, args: reqArgs, tableMock: mtbl, want: &expected, wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -199,6 +200,210 @@ func TestQueryHandler_GetSchema(t *testing.T) {
 			}
 			if tt.wantErr {
 				t.Fatal("GetSchema() succeeded unexpectedly")
+			}
+			if true {
+				assert.EqualValues(t, tt.want, got)
+			}
+		})
+	}
+}
+
+func TestQueryHandler_GetStatus(t *testing.T) {
+	timNow := time.Now()
+	var mtbl []map[string]interface{}
+	row2 := make(map[string]interface{})
+	row2["numbackends"] = int64(20)
+	row2["state_change"] = timNow
+	row2["character_maximum_length"] = int64(200)
+	mtbl = append(mtbl, row2)
+
+	reqArgs := types.ConnectionStatus{
+		Database: "mcp-db",
+	}
+
+	request := mcp.CallToolRequest{
+		Params: mcp.CallToolParams{
+			Name:      "get_connection_status",
+			Arguments: reqArgs,
+		},
+	}
+
+	expected := types.ConnectionStatusResp{
+		Database:  "mcp-db",
+		Connected: true,
+		PoolStats: 20,
+		LastPing:  timNow.Format(time.RFC3339),
+	}
+
+	reqArgsEmpty := types.ConnectionStatus{
+		Database: "",
+	}
+
+	requestFail := mcp.CallToolRequest{
+		Params: mcp.CallToolParams{
+			Name:      "get_connection_status",
+			Arguments: reqArgsEmpty,
+		},
+	}
+
+	var mtbl1 []map[string]interface{}
+	rowErr := make(map[string]interface{})
+	rowErr["numbackends"] = 200
+	rowErr["state_change"] = timNow
+	rowErr["character_maximum_length"] = int64(200)
+	mtbl1 = append(mtbl1, rowErr)
+
+	expectedErr := fmt.Errorf("failed converting connection pool status")
+
+	tests := []struct {
+		name       string
+		repository *repository.Repository
+		tableMock  []map[string]interface{}
+		req        mcp.CallToolRequest
+		args       types.ConnectionStatus
+		want       *types.ConnectionStatusResp
+		wantErr    bool
+	}{
+		{name: "Happy Flow - GetStatus", req: request, args: reqArgs, tableMock: mtbl, want: &expected, wantErr: false},
+		{name: "Sad Flow - GetStatus connection pool status error", req: requestFail, args: reqArgsEmpty, tableMock: mtbl1, want: &expected, wantErr: false},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			pg, _ := database.NewPostgresClientMock(tt.tableMock, false)
+			repo := &repository.Repository{Postgress: pg}
+			qh := handlers.NewQueryHandler(repo)
+			got, gotErr := qh.GetStatus(context.Background(), tt.req, tt.args)
+			if gotErr != nil {
+				if !tt.wantErr {
+					assert.EqualValues(t, expectedErr, gotErr)
+				}
+				return
+			}
+			if tt.wantErr {
+				t.Fatal("GetStatus() succeeded unexpectedly")
+			}
+			if true {
+				assert.EqualValues(t, tt.want, got)
+			}
+		})
+	}
+}
+
+func TestQueryHandler_ExecutePrepared(t *testing.T) {
+	query := "SELECT CustomerName, Address FROM customers WHERE Country =$1 AND City LIKE $2"
+	var mtblMock []map[string]interface{}
+	item := make(map[string]interface{})
+	item["id"] = "1"
+	item["CustomerName"] = "Bob"
+	item["ContactName"] = "Bob mum"
+	item["Address"] = "Some street in London"
+	item["City"] = "London"
+	item["PostalCode"] = "1ld12"
+	item["Country"] = "UK"
+
+	item1 := make(map[string]interface{})
+	item1["id"] = "2"
+	item1["CustomerName"] = "Joe"
+	item1["ContactName"] = "Joe Mc Cormack"
+	item1["Address"] = "Vikings st"
+	item1["City"] = "Liverpool"
+	item1["PostalCode"] = "1liv122"
+	item1["Country"] = "UK"
+
+	item2 := make(map[string]interface{})
+	item2["id"] = "3"
+	item2["CustomerName"] = "Anna"
+	item2["ContactName"] = "Anna Valerina"
+	item2["Address"] = "Near me st"
+	item2["City"] = "Dublin"
+	item2["PostalCode"] = "Dub02"
+	item2["Country"] = "IE"
+
+	mtblMock = append(mtblMock, item, item1, item2)
+
+	par := []any{
+		"UK", "L%",
+	}
+
+	args := make(map[string]interface{})
+	args["databse"] = "mcp-db"
+	args["StatementName"] = "SELECT CustomerName, Address FROM customers WHERE Country =$1 AND City LIKE $2"
+	args["format"] = "json"
+	args["parameters"] = par
+
+	request := mcp.CallToolRequest{
+		Params: mcp.CallToolParams{
+			Name:      "execute_prepared",
+			Arguments: args,
+		},
+	}
+
+	reqArgs := types.PreparedRequest{
+		Database:      "mcp-db",
+		StatementName: query,
+		Parameters:    par,
+		Format:        "json",
+	}
+
+	reqArgsCSV := types.PreparedRequest{
+		Database:      "mcp-db",
+		StatementName: query,
+		Parameters:    par,
+		Format:        "csv",
+	}
+
+	reqArgsTable := types.PreparedRequest{
+		Database:      "mcp-db",
+		StatementName: query,
+		Parameters:    par,
+		Format:        "table",
+	}
+
+	expected := types.QueryResponse{
+		Query:    query,
+		Response: `[{"Address":"Some street in London","City":"London","ContactName":"Bob mum","Country":"UK","CustomerName":"Bob","PostalCode":"1ld12","id":"1"}]`,
+		Format:   "json",
+	}
+
+	expectedCSV := types.QueryResponse{
+		Query:    query,
+		Response: "Address,City,ContactName,Country,CustomerName,PostalCode,id\nSome street in London,London,Bob mum,UK,Bob,1ld12,1\n",
+		Format:   "csv",
+	}
+
+	expectedTable := types.QueryResponse{
+		Query:    query,
+		Response: "<table><thead><tr><th>Address</th><th>City</th><th>ContactName</th><th>Country</th><th>CustomerName</th><th>PostalCode</th><th>id</th></tr></thead><tbody><tr><td>Some street in London</td><td>London</td><td>Bob mum</td><td>UK</td><td>Bob</td><td>1ld12</td><td>1</td></tr></tbody></table>",
+		Format:   "table",
+	}
+
+	tests := []struct {
+		name       string
+		repository *repository.Repository
+		req        mcp.CallToolRequest
+		args       types.PreparedRequest
+		tableMock  []map[string]interface{}
+		want       *types.QueryResponse
+		wantErr    bool
+	}{
+		{name: "Happy Flow execute_query - expect JSON format", req: request, args: reqArgs, tableMock: mtblMock, want: &expected, wantErr: false},
+		{name: "Happy Flow execute_query - expect CSV format", req: request, args: reqArgsCSV, tableMock: mtblMock, want: &expectedCSV, wantErr: false},
+		{name: "Happy Flow execute_query - expect HTML table format", req: request, args: reqArgsTable, tableMock: mtblMock, want: &expectedTable, wantErr: false},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			pg, _ := database.NewPostgresClientMock(tt.tableMock, false)
+			repo := &repository.Repository{Postgress: pg}
+			qh := handlers.NewQueryHandler(repo)
+			got, gotErr := qh.ExecutePrepared(context.Background(), tt.req, tt.args)
+			if gotErr != nil {
+				if !tt.wantErr {
+					t.Errorf("ExecutePrepared() failed: %v", gotErr)
+				}
+				return
+			}
+			if tt.wantErr {
+				t.Fatal("ExecutePrepared() succeeded unexpectedly")
 			}
 			if true {
 				assert.EqualValues(t, tt.want, got)
