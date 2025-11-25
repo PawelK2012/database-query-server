@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"context"
 	"encoding/csv"
-	"encoding/json"
 	"fmt"
 	"html"
 	"log"
@@ -14,6 +13,7 @@ import (
 	"strings"
 	"time"
 
+	"exmple.com/database-query-server/internal/utils"
 	"exmple.com/database-query-server/pkg/types"
 	"github.com/mark3labs/mcp-go/mcp"
 )
@@ -26,7 +26,7 @@ func (qh *QueryHandler) GetSchema(ctx context.Context, req mcp.CallToolRequest, 
 		return nil, fmt.Errorf("get_schema for table %v failed %v", args.Tables, err)
 	}
 
-	jsonRes, err := dataToJson(res)
+	jsonRes, err := utils.DataToJson(res)
 	if err != nil {
 		return nil, fmt.Errorf("failed to encode get_schema response to JSON format %v", err)
 	}
@@ -95,25 +95,9 @@ func (qh *QueryHandler) ExecuteQuery(ctx context.Context, req mcp.CallToolReques
 	if err != nil {
 		return nil, fmt.Errorf("execute_query %v failed %v", args.Query, err)
 	}
-	var formattedResp string
-	switch args.Format {
-	case "json":
-		formattedResp, err = dataToJson(qResp)
-		if err != nil {
-			return nil, fmt.Errorf("failed to encode execute_query response to JSON format %v", err)
-		}
-	case "csv":
-		formattedResp, err = dataToCSV(qResp)
-		if err != nil {
-			return nil, fmt.Errorf("failed to encode execute_query response to CSV format %v", err)
-		}
-	case "table":
-		formattedResp, err = dataHTMLTable(qResp)
-		if err != nil {
-			return nil, fmt.Errorf("failed to encode execute_query response to HTML table format %v", err)
-		}
-	default:
-		return nil, fmt.Errorf("format %v not supported", args.Format)
+	formattedResp, err := formatData(args.Format, qResp)
+	if err != nil {
+		return nil, err
 	}
 
 	response := &types.QueryResponse{
@@ -130,27 +114,10 @@ func (qh *QueryHandler) ExecutePrepared(ctx context.Context, req mcp.CallToolReq
 	if err != nil {
 		return nil, fmt.Errorf("execute_prepared %v failed %v", args.StatementName, err)
 	}
-	var formattedResp string
-	switch args.Format {
-	case "json":
-		formattedResp, err = dataToJson(qResp)
-		if err != nil {
-			return nil, fmt.Errorf("failed to encode execute_query response to JSON format %v", err)
-		}
-	case "csv":
-		formattedResp, err = dataToCSV(qResp)
-		if err != nil {
-			return nil, fmt.Errorf("failed to encode execute_query response to CSV format %v", err)
-		}
-	case "table":
-		formattedResp, err = dataHTMLTable(qResp)
-		if err != nil {
-			return nil, fmt.Errorf("failed to encode execute_query response to HTML table format %v", err)
-		}
-	default:
-		return nil, fmt.Errorf("format %v not supported", args.Format)
+	formattedResp, err := formatData(args.Format, qResp)
+	if err != nil {
+		return nil, err
 	}
-
 	response := &types.QueryResponse{
 		Query:    args.StatementName,
 		Response: formattedResp,
@@ -159,14 +126,40 @@ func (qh *QueryHandler) ExecutePrepared(ctx context.Context, req mcp.CallToolReq
 	return response, nil
 }
 
-// dataToJson converts a slice of maps containing data into a JSON string
-func dataToJson(data []map[string]interface{}) (string, error) {
-	enco, err := json.Marshal(data)
-	if err != nil {
-		return "", err
+func formatData(format string, data []map[string]interface{}) (string, error) {
+	switch format {
+	case "json":
+		formattedResp, err := utils.DataToJson(data)
+		if err != nil {
+			return "", fmt.Errorf("failed to encode execute_query response to JSON format %v", err)
+		}
+		return formattedResp, nil
+	case "csv":
+		formattedResp, err := dataToCSV(data)
+		if err != nil {
+			return "", fmt.Errorf("failed to encode execute_query response to CSV format %v", err)
+		}
+		return formattedResp, nil
+	case "table":
+		formattedResp, err := dataHTMLTable(data)
+		if err != nil {
+			return "", fmt.Errorf("failed to encode execute_query response to HTML table format %v", err)
+		}
+		return formattedResp, nil
+	default:
+		return "", fmt.Errorf("format %v not supported", format)
 	}
-	return string(enco), nil
+
 }
+
+// dataToJson converts a slice of maps containing data into a JSON string
+// func dataToJson(data []map[string]interface{}) (string, error) {
+// 	enco, err := json.Marshal(data)
+// 	if err != nil {
+// 		return "", err
+// 	}
+// 	return string(enco), nil
+// }
 
 // dataToCSV converts a slice of maps into a CSV string
 func dataToCSV(data []map[string]interface{}) (string, error) {
