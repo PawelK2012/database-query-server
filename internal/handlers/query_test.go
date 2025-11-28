@@ -63,6 +63,12 @@ func TestQueryHandler_ExecuteQuery(t *testing.T) {
 		Format:   "table",
 	}
 
+	reqInvalidQuery := types.QueryRequest{
+		Database: "postgres",
+		Query:    "SELECT_INJ SELECT * FROM customers",
+		Format:   "table",
+	}
+
 	args := make(map[string]interface{})
 	args["databse"] = "sql"
 	args["query"] = "SELECT * FROM customers"
@@ -101,6 +107,12 @@ func TestQueryHandler_ExecuteQuery(t *testing.T) {
 		Format:   "table",
 	}
 
+	expectedInvalidQueryErr := types.QueryResponse{
+		Query:    "SELECT * FROM customers",
+		Response: "---",
+		Format:   "table",
+	}
+
 	tests := []struct {
 		name      string
 		req       mcp.CallToolRequest
@@ -114,6 +126,8 @@ func TestQueryHandler_ExecuteQuery(t *testing.T) {
 		{name: "Happy Flow execute_query - to CSV export with different Postgres types", req: request, args: reqArgsCVS, tableMock: mtblWithDifferentTypes, want: &expectedCSVOutputWithDifferentTypes, wantErr: false},
 		{name: "Fail execute_query - invalid format", req: request, args: reqArgsInvalidFormat, tableMock: mtbl, want: &expectedCSVOutput, wantErr: true},
 		{name: "Happy Flow execute_query - export to HTML table", req: request, args: reqToTable, tableMock: mtbl, want: &expectedTableOutput, wantErr: false},
+		{name: "Fail execute_query - query must start with SELECT statement", req: request, args: reqInvalidQuery, tableMock: mtbl, want: &expectedInvalidQueryErr, wantErr: true},
+
 		// Add execute_query test
 	}
 	for _, tt := range tests {

@@ -78,13 +78,22 @@ func (qh *QueryHandler) GetStatus(ctx context.Context, req mcp.CallToolRequest, 
 func (qh *QueryHandler) ExecuteQuery(ctx context.Context, req mcp.CallToolRequest, args types.QueryRequest) (*types.QueryResponse, error) {
 	log.Printf("execute_query handler got query %v with format %v", args.Query, args.Format)
 
+	// query must start with SELECT statement
+	err := utils.CheckFirstWord(args.Query)
+	if err != nil {
+		return nil, err
+	}
+
 	// Input is already validated and bound to SearchRequest struct
 	limit := args.Limit
 	if limit <= 0 {
 		limit = 10
 	}
 
-	qResp, err := qh.repository.Postgress.ExecQuery(ctx, args.Query, args.Parameters)
+	// appending LIMIT into query
+	query := args.Query + fmt.Sprintf(" LIMIT %d ", limit)
+
+	qResp, err := qh.repository.Postgress.ExecQuery(ctx, query, args.Parameters)
 	if err != nil {
 		return nil, fmt.Errorf("execute_query %v failed %v", args.Query, err)
 	}
