@@ -12,8 +12,6 @@ type Repository struct {
 
 // New returns a pointer to a new Repository instance or an error.
 func New() (*Repository, error) {
-	// log := logger.New("repository")
-
 	pg, err := database.NewPostgressClient()
 	if err != nil {
 		log.Fatal(err)
